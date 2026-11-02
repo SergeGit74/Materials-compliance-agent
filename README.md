@@ -480,3 +480,6 @@ Real-mode trials exist for all 50 items (`results/real_runs.csv`); about 9 resul
 - Obtain an English structural codes edition, a cleaner seismic PDF, the Dubai Municipality technical guidelines no. 1, 5 and 6, and DEWA's meter specification.
 - Add a payment method on the Voyage account if re-ranking is wanted.
 - The working project is not a git repository; the clean export folder is one (initialised 2026-11-03, no commit yet). Use `src/export_clean.py` before publishing; the Fire Code PDF (145 MB) needs Git LFS or must stay out.
+
+## License
+Free for non-commercial use; the author must be named wherever the project or a work derived from it is published or presented. The author accepts no responsibility for the consequences of using it. The rulebooks it cites belong to their publishers and are not covered. Full text in `LICENSE`.
