@@ -1,0 +1,9 @@
+pandas
+openpyxl
+pydantic
+python-dotenv
+anthropic
+voyageai
+httpx
+pytest
+streamlit

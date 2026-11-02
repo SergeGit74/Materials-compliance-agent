@@ -1,0 +1,46 @@
+{
+  "dewa_electricity-installations-regulations_v2022-09.pdf": {
+    "bytes": 20673914,
+    "sha256": "6387c76a7fb62131151a5f41b45b33c94264af6864470ce5807b07584bcab29c"
+  },
+  "dewa_guidelines-new-development-projects-water_v2016.pdf": {
+    "bytes": 786908,
+    "sha256": "22c5480748e3d98be7353cca925d47f6c9d04b7ba115b42c8805bc70fd5c24bc"
+  },
+  "dubai-municipality_code-of-construction-safety-practice_v2022.pdf": {
+    "bytes": 7857803,
+    "sha256": "15afb73ae09bb4952c61d958ef0b97e37bb00f128c6d5a34191850b6ee8e2945"
+  },
+  "dubai-municipality_dubai-building-code_v2021-12.pdf": {
+    "bytes": 32552162,
+    "sha256": "cc2f231a569dcc03a7f4e5e5abe58762fd76265dad01fea166a1463e50d9cc63"
+  },
+  "dubai-municipality_dubaiwindcode6-2_v2026-04.pdf": {
+    "bytes": 622156,
+    "sha256": "39646d6448db83325edb43e2e0ee3534cd9544f52706094d3249ea48518b9dfa"
+  },
+  "dubai-municipality_green-building-regulations-and-specifications_v2026-11.pdf": {
+    "bytes": 1386569,
+    "sha256": "05df2f483a9de25dad525ed9725d225d27c20830e87935f1433039205953e03a"
+  },
+  "dubai-municipality_seismic-design-code_v2026-04.pdf": {
+    "bytes": 2295349,
+    "sha256": "d9eff56bc4fa54501a32f90a254e6c8f51315b0bb62b119798efac198a577ea8"
+  },
+  "dubai-municipality_structural-codes-and-regulations_v2026-04.pdf": {
+    "bytes": 1098325,
+    "sha256": "eb6bb8313a612a7298e43ad9738cfac64067e9b1b8335772c2d1e16ac84f88c9"
+  },
+  "dubai-municipality_technical-guidelines-for-confined-spaces-entry_v2026-11.pdf": {
+    "bytes": 159091,
+    "sha256": "bc25504d8bd7d974706f12603781de3682b36e270b12e41cfad952d83857293e"
+  },
+  "sira_security-systems-technical-specifications_v2022-02.pdf": {
+    "bytes": 398371,
+    "sha256": "13d36651a04d12c9804eb677750dc40def4eec1610ca214e15891eb1176c6833"
+  },
+  "uae-civil-defence_fire-and-life-safety-code-of-practice_v2018-09.pdf": {
+    "bytes": 145282069,
+    "sha256": "20a52e0bef14ae85125a4c05f2223ee7f5a1d52e26cdc1ce721cf920b0416d3c"
+  }
+}

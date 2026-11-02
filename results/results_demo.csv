@@ -1,0 +1,9 @@
+item_id,processed_at,category,normalized_name,producer_candidates,matched_producer,alias_notes,fit_status,fit_notes,dubai_rule_refs,compliance_verdict,confidence,evidence_urls,human_decision,notes
+INV-0001,2026-01-01T10:00:00,Electrical,Moulded case circuit breaker 3P 250A,Schneider Electric,Schneider Electric,Short name 'Schneider' = Schneider Electric,FIT,Ratings match MDB-01 spec,DEMO-RULE-1 s2.1,ALLOWED,0.86,https://example.com/demo,approved,DEMO ROW - not a real finding
+INV-0002,2026-01-01T10:08:00,Electrical,Contactor 3P 40A coil 230VAC,ABB,ABB,,PARTIAL,"Coil voltage matches, auxiliary contacts unconfirmed",DEMO-RULE-1 s3.4,NEEDS_DOCUMENTS,0.64,https://example.com/demo,pending,DEMO ROW - not a real finding
+INV-0003,2026-01-01T10:15:00,Electrical,LV power cable XLPE 4C 185 sq mm Cu,,,,UNKNOWN,Manufacturer missing,,UNKNOWN,0.31,,pending,DEMO ROW - not a real finding
+INV-0007,2026-01-01T10:25:00,Electrical,Emergency luminaire 3h maintained,,,,PARTIAL,Spec incomplete,DEMO-RULE-2 s1.2,NEEDS_DOCUMENTS,0.52,,pending,DEMO ROW - not a real finding
+INV-0016,2026-01-01T10:40:00,Fire & Life Safety,Pendant sprinkler K5.6 68C,Johnson Controls (Tyco),Johnson Controls (Tyco),Tyco is a brand of Johnson Controls,FIT,,DEMO-RULE-3 s5.1,NOT_ALLOWED,0.77,https://example.com/demo,rejected,DEMO ROW - not a real finding
+INV-0025,2026-01-01T10:50:00,Plumbing & Pumps,Pressure gauge 0-16 bar 100 mm,WIKA,WIKA,,FIT,,,UNKNOWN,0.58,https://example.com/demo,pending,DEMO ROW - not a real finding
+INV-0036,2026-01-01T11:02:00,ELV & BMS,DDC controller 16 I/O BACnet,Siemens,Siemens,Siemens AG = Siemens,FIT,,DEMO-RULE-2 s2.2,ALLOWED,0.81,https://example.com/demo,approved,DEMO ROW - not a real finding
+INV-0050,2026-01-01T11:10:00,General,Unspecified spares,,,,UNKNOWN,Multiple items in one row,,UNKNOWN,0.10,,pending,DEMO ROW - not a real finding

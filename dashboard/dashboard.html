@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Materials Compliance Review</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#E9EDF0; --surface:#FFFFFF; --ink:#17222D; --muted:#566471; --line:#CBD3DA; --pend:#D9DFE4;
+  --ok:#1F7A5C; --bad:#B3261E; --warn:#9A6200; --unk:#566B7D; --on:#FFFFFF; --focus:#1C5FA8;
+}
+:root[data-theme="dark"]{
+  --bg:#10171E; --surface:#18222B; --ink:#E6ECF1; --muted:#93A3B1; --line:#2A3844; --pend:#263340;
+  --ok:#43B58C; --bad:#F0716A; --warn:#E0A93F; --unk:#8AA0B3; --on:#0E1419; --focus:#6FB0F2;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#10171E; --surface:#18222B; --ink:#E6ECF1; --muted:#93A3B1; --line:#2A3844; --pend:#263340;
+    --ok:#43B58C; --bad:#F0716A; --warn:#E0A93F; --unk:#8AA0B3; --on:#0E1419; --focus:#6FB0F2;
+  }
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:400 15px/1.5 "IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Arial,sans-serif;font-variant-numeric:tabular-nums}
+button,select,input{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.wrap{max-width:1180px;margin:0 auto;padding:24px 20px 56px}
+header.top{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;justify-content:space-between;margin-bottom:20px}
+h1{font-size:22px;font-weight:600;margin:0 0 2px;letter-spacing:-.01em}
+.sub{margin:0;color:var(--muted);font-size:14px}
+.actions{display:flex;flex-wrap:wrap;gap:8px}
+.btn{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:8px 14px;cursor:pointer;font-weight:500}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.btn.small{padding:4px 10px;font-size:13px}
+input[type=file]{display:none}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:20px}
+.hero{margin-bottom:16px}
+.hero h2{font-size:20px;font-weight:600;margin:0 0 4px}
+.hero p{margin:0 0 16px;color:var(--muted)}
+.strip{display:flex;flex-wrap:wrap;gap:5px}
+.cell{width:30px;height:30px;border-radius:5px;border:0;padding:0;font-size:11px;font-weight:600;cursor:pointer;background:var(--pend);color:var(--muted)}
+.cell[data-v]{color:var(--on)}
+.cell[data-v=ALLOWED]{background:var(--ok)}
+.cell[data-v=NOT_ALLOWED]{background:var(--bad)}
+.cell[data-v=NEEDS_DOCUMENTS]{background:var(--warn)}
+.cell[data-v=UNKNOWN]{background:var(--unk)}
+.cell:hover{transform:translateY(-1px)}
+.legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:14px;font-size:13px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:12px;height:12px;border-radius:3px;display:inline-block}
+.grid{display:grid;gap:16px;grid-template-columns:repeat(12,1fr);margin-bottom:16px}
+.col-4{grid-column:span 4}.col-5{grid-column:span 5}.col-7{grid-column:span 7}.col-8{grid-column:span 8}.col-12{grid-column:span 12}
+@media (max-width:860px){.col-4,.col-5,.col-7,.col-8{grid-column:span 12}}
+h3{font-size:15px;font-weight:600;margin:0 0 12px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px}
+.kpi{border-left:3px solid var(--line);padding-left:10px}
+.kpi b{display:block;font-size:24px;font-weight:600;line-height:1.1}
+.kpi span{font-size:13px;color:var(--muted)}
+.bars{display:grid;gap:10px}
+.bar{display:grid;grid-template-columns:130px 1fr 34px;gap:10px;align-items:center;font-size:14px}
+.track{background:var(--pend);border-radius:4px;height:14px;overflow:hidden;display:flex}
+.fill{height:100%}
+.stack-row{display:grid;grid-template-columns:150px 1fr 30px;gap:10px;align-items:center;font-size:14px;margin-bottom:8px}
+.nextcard h3{margin-bottom:6px}
+.nextcard .id{font-weight:600}
+.nextcard p{margin:0 0 12px;color:var(--muted)}
+.cmd{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.cmd code{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:4px 8px;font-size:13px}
+.filters{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.filters select,.filters input{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:7px 10px}
+.filters input{min-width:200px;flex:1}
+.tablewrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;font-weight:600;color:var(--muted);font-size:13px;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+tbody tr{cursor:pointer}
+tbody td:first-child{white-space:nowrap}
+tbody tr:hover{background:var(--bg)}
+.pill{--c:var(--unk);display:inline-block;padding:2px 9px;border-radius:99px;font-size:13px;font-weight:500;color:var(--c);background:color-mix(in srgb,var(--c) 14%,transparent);white-space:nowrap}
+.pill[data-v=ALLOWED]{--c:var(--ok)}.pill[data-v=NOT_ALLOWED]{--c:var(--bad)}.pill[data-v=NEEDS_DOCUMENTS]{--c:var(--warn)}.pill[data-v=UNKNOWN]{--c:var(--unk)}
+.conf{display:flex;align-items:center;gap:6px;min-width:90px}
+.conf .track{width:50px;height:8px}
+.conf .fill{background:var(--muted)}
+.empty{color:var(--muted);padding:20px 0;text-align:center}
+.note{font-size:13px;color:var(--muted);margin:12px 0 0}
+.msg{margin:0 0 12px;padding:10px 12px;border-radius:6px;background:color-mix(in srgb,var(--warn) 14%,transparent);font-size:14px}
+dialog{border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink);padding:0;width:min(640px,94vw);max-height:86vh}
+dialog::backdrop{background:rgba(10,16,22,.5)}
+.dhead{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:18px 20px 8px}
+.dhead h3{margin:0 0 4px;font-size:17px}
+.dbody{padding:4px 20px 20px;overflow:auto;max-height:68vh}
+dl{display:grid;grid-template-columns:150px 1fr;gap:6px 14px;margin:0 0 14px;font-size:14px}
+dt{color:var(--muted)}dd{margin:0;overflow-wrap:anywhere}
+.dbody h4{margin:14px 0 8px;font-size:14px}
+a{color:var(--focus)}
+.newitem{margin-top:16px}
+.newitem .lead{margin:0 0 14px;color:var(--muted)}
+.field{display:grid;gap:4px;margin-bottom:12px}
+.field label{font-weight:500;font-size:14px}
+.field input{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:9px 11px;width:100%}
+.field .hint{font-size:13px;color:var(--muted)}
+.fieldgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 14px}
+@media (max-width:640px){.fieldgrid{grid-template-columns:1fr}}
+details.more{margin:0 0 12px}
+details.more summary{cursor:pointer;font-weight:500;font-size:14px;padding:4px 0}
+.est{border:1px solid var(--line);border-radius:8px;padding:16px;margin:14px 0;background:var(--bg)}
+.est h4{margin:0 0 10px;font-size:15px}
+.estgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-bottom:10px}
+.est .big{font-size:20px;font-weight:600;line-height:1.2;display:block}
+.est .lab{font-size:13px;color:var(--muted)}
+.est ul{margin:8px 0 0;padding-left:18px;font-size:14px}
+.est .flag{margin:10px 0 0;padding:8px 10px;border-radius:6px;background:color-mix(in srgb,var(--warn) 14%,transparent);font-size:14px}
+.btnrow{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.qlist{margin-top:18px}
+.qlist h4{margin:0 0 8px;font-size:14px}
+.qitem{display:grid;grid-template-columns:90px 1fr auto;gap:6px 12px;align-items:center;padding:10px 0;border-top:1px solid var(--line);font-size:14px}
+.qitem .meta{color:var(--muted);font-size:13px}
+.qitem .acts{display:flex;gap:6px;flex-wrap:wrap}
+@media (max-width:640px){.qitem{grid-template-columns:1fr}}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+@media (prefers-reduced-motion:no-preference){.cell{transition:transform .12s}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Materials compliance review</h1>
+      <p class="sub">Dubai rulebooks, English version. One item at a time, with your approval.</p>
+    </div>
+    <div class="actions">
+      <button class="btn primary" id="btnResults" type="button">Load results (.csv)</button>
+      <button class="btn" id="btnInventory" type="button">Load inventory (.xlsx or .csv)</button>
+      <button class="btn" id="btnDemo" type="button">Preview with demo data</button>
+      <input type="file" id="fileResults" accept=".csv,.json,text/csv,application/json">
+      <input type="file" id="fileInventory" accept=".csv,.xlsx,.xls,text/csv">
+    </div>
+  </header>
+
+  <div id="messages"></div>
+
+  <section class="panel hero" aria-labelledby="heroTitle">
+    <h2 id="heroTitle">No items loaded yet</h2>
+    <p id="heroSub">Load the inventory to see every item, or load results to see what has been checked.</p>
+    <div class="strip" id="strip" role="list"></div>
+    <div class="legend" id="legend"></div>
+  </section>
+
+  <div class="grid">
+    <section class="panel col-8" aria-label="Summary">
+      <h3>Summary</h3>
+      <div class="kpis" id="kpis"></div>
+    </section>
+    <section class="panel col-4 nextcard" id="nextCard" aria-label="Next item"></section>
+  </div>
+
+  <div class="grid">
+    <section class="panel col-5" aria-label="Verdicts">
+      <h3>Verdicts</h3>
+      <div class="bars" id="verdictBars"></div>
+    </section>
+    <section class="panel col-7" aria-label="Verdicts by category">
+      <h3>Verdicts by category</h3>
+      <div id="catStacks"></div>
+    </section>
+  </div>
+
+  <section class="panel col-12" aria-label="Results table">
+    <h3>Items</h3>
+    <div class="filters">
+      <input type="search" id="q" placeholder="Search by ID, name or producer" aria-label="Search items">
+      <select id="fVerdict" aria-label="Filter by verdict"><option value="">All verdicts</option></select>
+      <select id="fCat" aria-label="Filter by category"><option value="">All categories</option></select>
+      <select id="fHuman" aria-label="Filter by human decision">
+        <option value="">Any human decision</option><option value="pending">Pending</option><option value="approved">Approved</option><option value="rejected">Rejected</option>
+      </select>
+    </div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Item</th><th>Category</th><th>Normalized name</th><th>Producer</th><th>Fit</th><th>Verdict</th><th>Confidence</th><th>Human</th></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <p class="note">Results come from results/results.csv. A verdict is a recommendation for a person to review, not a compliance decision.</p>
+  </section>
+
+  <section class="panel newitem" id="newItem" aria-labelledby="niTitle">
+    <h3 id="niTitle">Check a new item</h3>
+    <p class="lead">Not in the list? Type the equipment or material name. It goes through the same steps as every listed item, and you see the time and cost estimate first.</p>
+    <form id="niForm" autocomplete="off" novalidate>
+      <div class="field">
+        <label for="niName">Equipment or material name</label>
+        <input type="text" id="niName" maxlength="160" placeholder="e.g. Fire pump jockey seal kit" required aria-describedby="niNameHint">
+        <span class="hint" id="niNameHint">Plain words are fine. Do not type prices, project names or passwords.</span>
+      </div>
+      <details class="more">
+        <summary>Add details (optional, narrows the search and the estimate)</summary>
+        <div class="fieldgrid" style="margin-top:10px">
+          <div class="field"><label for="niMfr">Manufacturer</label><input type="text" id="niMfr" maxlength="100"></div>
+          <div class="field"><label for="niPn">Part number</label><input type="text" id="niPn" maxlength="100"></div>
+          <div class="field"><label for="niSpecs">Key specs</label><input type="text" id="niSpecs" maxlength="200" placeholder="e.g. 3HP, 415V"></div>
+          <div class="field"><label for="niEq">Equipment it serves</label><input type="text" id="niEq" maxlength="120"></div>
+        </div>
+      </details>
+      <div class="btnrow" style="margin-top:0"><button class="btn primary" type="submit">Show estimate</button></div>
+    </form>
+    <div id="niEstimate" aria-live="polite"></div>
+    <div class="qlist" id="niQueue"></div>
+    <p class="note">Planning estimates, not a quote. This page estimates and queues the item. It runs only after you approve it: paste the command into Claude Code, or use Run this item in the app. Actual time and cost are logged after the run.</p>
+  </section>
+</div>
+
+<dialog id="dlg" aria-labelledby="dTitle">
+  <div class="dhead">
+    <div><h3 id="dTitle"></h3><div id="dPill"></div></div>
+    <button class="btn small" id="dClose" type="button">Close</button>
+  </div>
+  <div class="dbody" id="dBody"></div>
+</dialog>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
+<script>
+(function(){
+"use strict";
+var V = {
+  ALLOWED:{label:"Allowed"}, NOT_ALLOWED:{label:"Not allowed"},
+  NEEDS_DOCUMENTS:{label:"Needs documents"}, UNKNOWN:{label:"Unknown"}
+};
+var VORDER = ["ALLOWED","NEEDS_DOCUMENTS","NOT_ALLOWED","UNKNOWN"];
+var state = { inventory:[], results:[], manual:[] };
+
+function $(id){ return document.getElementById(id); }
+function h(tag, attrs){
+  var el = document.createElement(tag);
+  if(attrs){ for(var k in attrs){
+    if(k==="text") el.textContent = attrs[k];
+    else if(k==="class") el.className = attrs[k];
+    else if(k.slice(0,2)==="on") el.addEventListener(k.slice(2), attrs[k]);
+    else el.setAttribute(k, attrs[k]);
+  }}
+  for(var i=2;i<arguments.length;i++){ var c=arguments[i]; if(c==null) continue; el.appendChild(typeof c==="string"?document.createTextNode(c):c); }
+  return el;
+}
+function clear(el){ while(el.firstChild) el.removeChild(el.firstChild); }
+function key(s){ return String(s).replace(/^\uFEFF/,"").trim().toLowerCase().replace(/[^a-z0-9]+/g,"_").replace(/^_|_$/g,""); }
+function normVerdict(v){ v = String(v||"").trim().toUpperCase().replace(/[\s-]+/g,"_"); return V[v]?v:"UNKNOWN"; }
+function msg(text){ var m=$("messages"); m.appendChild(h("p",{class:"msg",role:"status",text:text})); setTimeout(function(){ if(m.firstChild) m.removeChild(m.firstChild); }, 9000); }
+
+/* ---------- parsing ---------- */
+function parseCSV(text){
+  text = text.replace(/^\uFEFF/,"");
+  var rows=[], row=[], cur="", q=false, i, ch;
+  for(i=0;i<text.length;i++){
+    ch = text[i];
+    if(q){
+      if(ch==='"'){ if(text[i+1]==='"'){ cur+='"'; i++; } else q=false; } else cur+=ch;
+    } else if(ch==='"'){ q=true; }
+    else if(ch===","){ row.push(cur); cur=""; }
+    else if(ch==="\n"||ch==="\r"){
+      if(ch==="\r" && text[i+1]==="\n") i++;
+      row.push(cur); cur="";
+      if(row.length>1 || row[0]!=="") rows.push(row);
+      row=[];
+    } else cur+=ch;
+  }
+  if(cur!=="" || row.length){ row.push(cur); rows.push(row); }
+  return rows;
+}
+function rowsToObjects(rows){
+  if(!rows.length) return [];
+  var head = rows[0].map(key), out=[];
+  for(var r=1;r<rows.length;r++){
+    var o={}; for(var c=0;c<head.length;c++) o[head[c]] = (rows[r][c]==null?"":String(rows[r][c])).trim();
+    out.push(o);
+  }
+  return out;
+}
+function classify(objs){
+  if(!objs.length) return null;
+  var k = Object.keys(objs[0]);
+  if(k.indexOf("compliance_verdict")>-1 && k.indexOf("item_id")>-1) return "results";
+  if(k.indexOf("internal_description")>-1 && k.indexOf("item_id")>-1) return "inventory";
+  return null;
+}
+function readFile(file, preferred){
+  var name = file.name.toLowerCase();
+  if(/\.xlsx?$/.test(name)){
+    if(!window.XLSX){ msg("Excel loading needs the SheetJS script, which could not load. Export the sheet as CSV and load that instead."); return; }
+    var fr = new FileReader();
+    fr.onload = function(e){
+      try{
+        var wb = XLSX.read(e.target.result,{type:"array",cellDates:true});
+        var sn = wb.SheetNames.indexOf("Inventory")>-1 ? "Inventory" : wb.SheetNames[0];
+        var json = XLSX.utils.sheet_to_json(wb.Sheets[sn],{defval:"",raw:true});
+        var objs = json.map(function(r){ var o={}; for(var k in r){ var v=r[k]; if(v instanceof Date) v=v.toISOString().slice(0,10); o[key(k)] = String(v).trim(); } return o; });
+        accept(objs, preferred, file.name);
+      }catch(err){ msg("Could not read "+file.name+". "+err.message); }
+    };
+    fr.readAsArrayBuffer(file);
+  } else {
+    var fr2 = new FileReader();
+    fr2.onload = function(e){
+      try{
+        var objs = name.slice(-5)===".json" ? JSON.parse(e.target.result).map(function(r){ var o={}; for(var k in r) o[key(k)] = String(r[k]==null?"":r[k]); return o; })
+                                          : rowsToObjects(parseCSV(e.target.result));
+        accept(objs, preferred, file.name);
+      }catch(err){ msg("Could not read "+file.name+". "+err.message); }
+    };
+    fr2.readAsText(file);
+  }
+}
+function accept(objs, preferred, fname){
+  var kind = classify(objs);
+  if(!kind){ msg(fname+" does not look like an inventory (needs Item_ID, Internal_Description) or a results file (needs item_id, compliance_verdict)."); return; }
+  if(preferred && kind!==preferred) msg(fname+" looks like "+(kind==="results"?"a results":"an inventory")+" file, so it was loaded as that.");
+  if(kind==="results") setResults(objs); else setInventory(objs);
+  render();
+}
+function setResults(objs){
+  var map={}; objs.forEach(function(o){ if(o.item_id){ o.compliance_verdict = normVerdict(o.compliance_verdict); map[o.item_id]=o; } });
+  state.results = Object.keys(map).sort().map(function(k){ return map[k]; });
+}
+function setInventory(objs){ state.inventory = objs.filter(function(o){ return o.item_id; }); }
+
+/* ---------- derived ---------- */
+function resultMap(){ var m={}; state.results.forEach(function(r){ m[r.item_id]=r; }); return m; }
+function invMap(){ var m={}; state.inventory.concat(state.manual).forEach(function(r){ m[r.item_id]=r; }); return m; }
+function allIds(){
+  var s={}; state.inventory.concat(state.manual).forEach(function(r){ s[r.item_id]=1; }); state.results.forEach(function(r){ s[r.item_id]=1; });
+  return Object.keys(s).sort();
+}
+function categoryOf(id){ var r=resultMap()[id], i=invMap()[id]; return (r&&r.category)||(i&&i.category)||"Unspecified"; }
+
+/* ---------- render ---------- */
+function render(){
+  var rm = resultMap(), im = invMap(), ids = allIds();
+  var total = ids.length, done = state.results.length;
+
+  $("heroTitle").textContent = ids.length ? (done+" of "+total+" items checked") : "No items loaded yet";
+  $("heroSub").textContent = !ids.length ? "Load the inventory to see every item, or load results to see what has been checked."
+    : (state.inventory.length||state.manual.length) ? "Each square is one item. Select a square to see the detail."
+    : "Load the inventory to see the items still waiting.";
+
+  var strip = $("strip"); clear(strip);
+  ids.forEach(function(id){
+    var r = rm[id], v = r ? r.compliance_verdict : null;
+    var label = id + " " + (v ? V[v].label : "not processed");
+    var b = h("button",{class:"cell",type:"button","aria-label":label,title:label,text:cellLabel(id)});
+    if(v) b.setAttribute("data-v", v);
+    b.addEventListener("click", function(){ openDetail(id); });
+    strip.appendChild(b);
+  });
+  var lg = $("legend"); clear(lg);
+  VORDER.forEach(function(v){ var s=h("span"); var sw=h("i",{class:"sw"}); sw.style.background="var(--"+({ALLOWED:"ok",NOT_ALLOWED:"bad",NEEDS_DOCUMENTS:"warn",UNKNOWN:"unk"})[v]+")"; s.appendChild(sw); s.appendChild(document.createTextNode(V[v].label)); lg.appendChild(s); });
+  var sp=h("span"); var sw2=h("i",{class:"sw"}); sw2.style.background="var(--pend)"; sp.appendChild(sw2); sp.appendChild(document.createTextNode("Not processed")); lg.appendChild(sp);
+
+  /* KPIs */
+  var counts={ALLOWED:0,NOT_ALLOWED:0,NEEDS_DOCUMENTS:0,UNKNOWN:0}, pendingHuman=0, confSum=0, confN=0;
+  state.results.forEach(function(r){
+    counts[r.compliance_verdict]++;
+    if((r.human_decision||"pending").toLowerCase()==="pending") pendingHuman++;
+    var c=parseFloat(r.confidence); if(!isNaN(c)){ confSum+=c; confN++; }
+  });
+  var kp=$("kpis"); clear(kp);
+  [[done,"Checked"],[Math.max(total-done,0),"Waiting"],[counts.ALLOWED,"Allowed"],[counts.NEEDS_DOCUMENTS,"Need documents"],[counts.NOT_ALLOWED,"Not allowed"],[counts.UNKNOWN,"Unknown"],[pendingHuman,"Awaiting your decision"],[confN?Math.round(confSum/confN*100)+"%":"-","Average confidence"]]
+    .forEach(function(k){ kp.appendChild(h("div",{class:"kpi"},h("b",{text:String(k[0])}),h("span",{text:k[1]}))); });
+
+  /* Next item */
+  var nc=$("nextCard"); clear(nc);
+  var pool = state.inventory.concat(state.manual);
+  if(!pool.length){
+    nc.appendChild(h("h3",{text:"Next item"}));
+    nc.appendChild(h("p",{text:"Load the inventory, or enter an item at the bottom, to see which item is next."}));
+  } else {
+    var next = pool.filter(function(r){ return !rm[r.item_id]; })[0];
+    if(!next){ nc.appendChild(h("h3",{text:"All items checked"})); nc.appendChild(h("p",{text:"Nothing is waiting. Review the items awaiting your decision."})); }
+    else {
+      nc.appendChild(h("h3",{text:"Next item"}));
+      nc.appendChild(h("p",null,h("span",{class:"id",text:next.item_id}),document.createTextNode(": "+(next.internal_description||""))));
+      var cmd = /^NEW-/.test(next.item_id) ? "/process-next "+next.item_id : "/process-next";
+      var row=h("div",{class:"cmd"},h("code",{text:cmd}),h("button",{class:"btn small",type:"button",text:"Copy command",onclick:function(e){ copy(cmd, e.target); }}));
+      nc.appendChild(row);
+      nc.appendChild(h("p",{class:"note",text:"Paste it in Claude Code. It processes this one item, then asks before continuing."}));
+    }
+  }
+
+  /* Verdict bars */
+  var vb=$("verdictBars"); clear(vb);
+  var mx=Math.max(1,done);
+  VORDER.forEach(function(v){
+    var pct = counts[v]/mx*100;
+    var fill=h("div",{class:"fill"}); fill.style.width=pct+"%"; fill.style.background="var(--"+({ALLOWED:"ok",NOT_ALLOWED:"bad",NEEDS_DOCUMENTS:"warn",UNKNOWN:"unk"})[v]+")";
+    vb.appendChild(h("div",{class:"bar"},h("span",{text:V[v].label}),h("div",{class:"track"},fill),h("span",{text:String(counts[v])})));
+  });
+  if(!done) vb.appendChild(h("p",{class:"empty",text:"No results yet."}));
+
+  /* Category stacks */
+  var cs=$("catStacks"); clear(cs);
+  var cats={}; ids.forEach(function(id){ var c=categoryOf(id); cats[c]=cats[c]||{total:0,ALLOWED:0,NOT_ALLOWED:0,NEEDS_DOCUMENTS:0,UNKNOWN:0,none:0}; cats[c].total++; var r=rm[id]; if(r) cats[c][r.compliance_verdict]++; else cats[c].none++; });
+  var names=Object.keys(cats).sort(function(a,b){ return cats[b].total-cats[a].total; });
+  names.forEach(function(n){
+    var c=cats[n], tr=h("div",{class:"track"});
+    VORDER.concat(["none"]).forEach(function(v){ if(!c[v]) return; var f=h("div",{class:"fill",title:(v==="none"?"Not processed":V[v].label)+": "+c[v]}); f.style.width=(c[v]/c.total*100)+"%"; f.style.background= v==="none"?"var(--pend)":"var(--"+({ALLOWED:"ok",NOT_ALLOWED:"bad",NEEDS_DOCUMENTS:"warn",UNKNOWN:"unk"})[v]+")"; tr.appendChild(f); });
+    cs.appendChild(h("div",{class:"stack-row"},h("span",{text:n}),tr,h("span",{text:String(c.total)})));
+  });
+  if(!names.length) cs.appendChild(h("p",{class:"empty",text:"Nothing to show yet."}));
+
+  fillFilters();
+  renderTable();
+  renderManual();
+}
+function fillFilters(){
+  var fv=$("fVerdict"), fc=$("fCat"), pv=fv.value, pc=fc.value;
+  clear(fv); fv.appendChild(h("option",{value:"",text:"All verdicts"}));
+  VORDER.forEach(function(v){ fv.appendChild(h("option",{value:v,text:V[v].label})); });
+  var cats={}; state.results.forEach(function(r){ cats[r.category||"Unspecified"]=1; });
+  clear(fc); fc.appendChild(h("option",{value:"",text:"All categories"}));
+  Object.keys(cats).sort().forEach(function(c){ fc.appendChild(h("option",{value:c,text:c})); });
+  fv.value=pv; fc.value=pc;
+}
+function renderTable(){
+  var tb=$("tbody"); clear(tb);
+  var q=$("q").value.trim().toLowerCase(), fv=$("fVerdict").value, fc=$("fCat").value, fh=$("fHuman").value;
+  var rows=state.results.filter(function(r){
+    if(fv && r.compliance_verdict!==fv) return false;
+    if(fc && (r.category||"Unspecified")!==fc) return false;
+    if(fh && (r.human_decision||"pending").toLowerCase()!==fh) return false;
+    if(q && (r.item_id+" "+r.normalized_name+" "+r.matched_producer+" "+r.producer_candidates).toLowerCase().indexOf(q)<0) return false;
+    return true;
+  });
+  if(!rows.length){ var td=h("td",{colspan:"8",class:"empty",text:state.results.length?"No items match these filters.":"No results loaded. Load results/results.csv or preview with demo data."}); tb.appendChild(h("tr",null,td)); return; }
+  rows.forEach(function(r){
+    var c=parseFloat(r.confidence), pct=isNaN(c)?0:Math.round(c*100);
+    var fill=h("div",{class:"fill"}); fill.style.width=pct+"%";
+    var tr=h("tr",{tabindex:"0"},
+      h("td",{text:r.item_id}), h("td",{text:r.category||""}), h("td",{text:r.normalized_name||""}),
+      h("td",{text:r.matched_producer||r.producer_candidates||""}), h("td",{text:r.fit_status||""}),
+      h("td",null,h("span",{class:"pill","data-v":r.compliance_verdict,text:V[r.compliance_verdict].label})),
+      h("td",null,h("div",{class:"conf"},h("div",{class:"track"},fill),h("span",{text:isNaN(c)?"-":pct+"%"}))),
+      h("td",{text:r.human_decision||"pending"}));
+    tr.addEventListener("click",function(){ openDetail(r.item_id); });
+    tr.addEventListener("keydown",function(e){ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); openDetail(r.item_id); } });
+    tb.appendChild(tr);
+  });
+}
+
+/* ---------- detail dialog ---------- */
+var LABELS={item_id:"Item",processed_at:"Processed",category:"Category",normalized_name:"Normalized name",producer_candidates:"Producer candidates",matched_producer:"Matched producer",alias_notes:"Alias notes",fit_status:"Fit",fit_notes:"Fit notes",dubai_rule_refs:"Dubai rule references",compliance_verdict:"Verdict",confidence:"Confidence",evidence_urls:"Evidence",human_decision:"Human decision",notes:"Notes"};
+var INVL={internal_description:"Description",part_number:"Part number",manufacturer_listed:"Manufacturer listed",equipment_served:"Equipment served",site_location:"Site",qty:"Quantity",unit:"Unit",key_specs:"Key specs",last_purchase_date:"Last purchase",stock_status:"Stock status"};
+function dl(obj, labels, skip){
+  var d=h("dl");
+  Object.keys(labels).forEach(function(k){
+    if(skip && skip.indexOf(k)>-1) return;
+    var v=obj[k]; if(v==null||v==="") return;
+    var dd=h("dd");
+    if(k==="evidence_urls"){
+      String(v).split(/[;\s]+/).filter(Boolean).forEach(function(u,i){
+        if(/^https?:\/\//i.test(u)){ if(i) dd.appendChild(document.createTextNode(" ")); dd.appendChild(h("a",{href:u,target:"_blank",rel:"noopener noreferrer",text:u})); }
+        else dd.appendChild(document.createTextNode(u+" "));
+      });
+    } else dd.textContent = String(v);
+    d.appendChild(h("dt",{text:labels[k]})); d.appendChild(dd);
+  });
+  return d;
+}
+function openDetail(id){
+  var r=resultMap()[id], i=invMap()[id], body=$("dBody"); clear(body);
+  $("dTitle").textContent = id + (r&&r.normalized_name ? ": "+r.normalized_name : (i? ": "+(i.internal_description||"") : ""));
+  var pill=$("dPill"); clear(pill);
+  pill.appendChild(r ? h("span",{class:"pill","data-v":r.compliance_verdict,text:V[r.compliance_verdict].label}) : h("span",{class:"sub",text:"Not processed yet"}));
+  if(r){ body.appendChild(h("h4",{text:"Result"})); body.appendChild(dl(r,LABELS,["item_id","compliance_verdict","normalized_name"])); }
+  if(i){ body.appendChild(h("h4",{text:"Inventory row"})); body.appendChild(dl(i,INVL)); }
+  if(!r && !i) body.appendChild(h("p",{class:"empty",text:"No details."}));
+  var dlg=$("dlg"); if(dlg.showModal) dlg.showModal(); else dlg.setAttribute("open","");
+}
+function copy(text, btn){
+  var done=function(){ var o=btn.textContent; btn.textContent="Copied"; setTimeout(function(){ btn.textContent=o; },1400); };
+  if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(text).then(done,function(){ msg("Copy failed. Select the command and copy it by hand."); }); }
+  else msg("Copy is not available here. Select the command and copy it by hand.");
+}
+
+
+/* ---------- new item: estimate and queue ---------- */
+var AED_PER_USD = 3.6725; /* fixed peg */
+var STORE_KEY = "mca_manual_items_v1";
+var TIERS = {
+  A:{name:"Name only",      min:[4,8],     typ:5.5, usd:[0.60,1.00,1.50], tok:325, why:"Only the name is known, so the producer search has to be wide and may need retries."},
+  B:{name:"Some details",   min:[2.5,4.5], typ:3.5, usd:[0.40,0.60,1.00], tok:195, why:"A manufacturer, part number or specs narrow the search."},
+  C:{name:"Full details",   min:[2,3.5],   typ:2.7, usd:[0.30,0.40,0.70], tok:130, why:"Manufacturer, part number and specs are all given, so the search is narrow."}
+};
+var SAFETY_RX = /\b(fire|sprinkler|smoke|alarm|extinguisher|hose reel|damper|lift|elevator|escalator|governor|harness|lanyard|fall arrest|gas detector|confined|cladding|composite panel|intumescent|firestop|structural|rebar)\b/i;
+function usd(n){ return "$"+n.toFixed(2); }
+function aed(n){ return "AED "+(n*AED_PER_USD).toFixed(1); }
+function mins(n){ return (n%1===0?n:n.toFixed(1))+""; }
+function cleanText(v){ return String(v||"").replace(/[\u0000-\u001F\u007F]+/g," ").replace(/\s+/g," ").trim(); }
+function cellLabel(id){ var d=id.replace(/\D/g,"").replace(/^0+/,"")||id; return /^NEW-/.test(id) ? "N"+d : d; }
+function estimateFor(f){
+  var n = (f.manufacturer?1:0)+(f.part?1:0)+(f.specs?1:0);
+  var tier = n===0?"A":(n===3?"C":"B");
+  var t = TIERS[tier];
+  return { tier:tier, t:t, safety: SAFETY_RX.test([f.name,f.specs,f.equipment].join(" ")) };
+}
+function readForm(){
+  return { name:cleanText($("niName").value), manufacturer:cleanText($("niMfr").value), part:cleanText($("niPn").value), specs:cleanText($("niSpecs").value), equipment:cleanText($("niEq").value) };
+}
+function nextManualId(){
+  var used={}; allIds().forEach(function(i){ used[i]=1; });
+  var n=0; state.manual.forEach(function(m){ var k=parseInt(m.item_id.replace(/\D/g,""),10); if(k>n) n=k; });
+  var id; do { n++; id="NEW-"+("0000"+n).slice(-4); } while(used[id]);
+  return id;
+}
+function saveManual(){ try{ localStorage.setItem(STORE_KEY, JSON.stringify(state.manual)); }catch(e){} }
+function loadManual(){
+  try{
+    var raw=localStorage.getItem(STORE_KEY); if(!raw) return;
+    var arr=JSON.parse(raw);
+    if(Array.isArray(arr)) arr.forEach(function(o){ if(o && /^NEW-\d{4}$/.test(o.item_id||"")) mergeManual(o); });
+  }catch(e){}
+}
+function mergeManual(o){
+  var rec={item_id:o.item_id,category:o.category||"Unspecified",internal_description:cleanText(o.internal_description),part_number:cleanText(o.part_number),manufacturer_listed:cleanText(o.manufacturer_listed),equipment_served:cleanText(o.equipment_served),site_location:"",qty:"",unit:"",key_specs:cleanText(o.key_specs),last_purchase_date:"",stock_status:o.stock_status||"Unknown"};
+  if(!rec.internal_description) return;
+  for(var i=0;i<state.manual.length;i++){ if(state.manual[i].item_id===rec.item_id){ state.manual[i]=rec; return; } }
+  state.manual.push(rec);
+}
+function estOf(rec){
+  return estimateFor({name:rec.internal_description,manufacturer:rec.manufacturer_listed,part:rec.part_number,specs:rec.key_specs,equipment:rec.equipment_served});
+}
+function findDuplicate(name){
+  var low=name.toLowerCase(), hit=null;
+  state.inventory.concat(state.manual).forEach(function(r){ if(!hit && (r.internal_description||"").toLowerCase()===low) hit=r; });
+  return hit;
+}
+function showEstimate(){
+  var f=readForm(), box=$("niEstimate"); clear(box);
+  if(f.name.length<3){ box.appendChild(h("p",{class:"msg",role:"status",text:"Type the equipment or material name first (at least 3 characters)."})); $("niName").focus(); return; }
+  var e=estimateFor(f), t=e.t, card=h("div",{class:"est"});
+  card.appendChild(h("h4",{text:"Estimate for: "+f.name}));
+  var grid=h("div",{class:"estgrid"});
+  function cellOf(big,sub,lab){ var d=h("div",null,h("span",{class:"big",text:big}),h("span",{class:"lab",text:lab})); if(sub) d.appendChild(h("span",{class:"lab",text:sub, style:"display:block"})); return d; }
+  grid.appendChild(cellOf(mins(t.min[0])+" to "+mins(t.min[1])+" min","typical "+mins(t.typ)+" min","Processing time"));
+  grid.appendChild(cellOf(usd(t.usd[0])+" to "+usd(t.usd[2]),"typical "+usd(t.usd[1])+", about "+aed(t.usd[1]),"API credit cost (USD)"));
+  grid.appendChild(cellOf("about "+t.tok+"k","input tokens, typical","Model usage"));
+  card.appendChild(grid);
+  var ul=h("ul");
+  ul.appendChild(h("li",{text:"Basis: "+t.name+". "+t.why}));
+  ul.appendChild(h("li",{text:"Range in dirhams: "+aed(t.usd[0])+" to "+aed(t.usd[2])+"."}));
+  ul.appendChild(h("li",{text:"Steps: normalize, find producers, fit check, Dubai rulebook check (English), verification. Same as listed items."}));
+  if(e.tier==="A") ul.appendChild(h("li",{text:"Adding a manufacturer, part number or key specs lowers the estimate."}));
+  card.appendChild(ul);
+  if(e.safety) card.appendChild(h("p",{class:"flag",text:"This looks safety-critical. The verification pass always runs and a person must make the final decision. It is excluded from batch runs by default."}));
+  var dup=findDuplicate(f.name);
+  if(dup) card.appendChild(h("p",{class:"flag",text:"Looks the same as "+dup.item_id+" already in the list. Add it only if you really want a second check."}));
+  var row=h("div",{class:"btnrow"});
+  row.appendChild(h("button",{class:"btn primary",type:"button",text:"Add to queue",onclick:function(){ addManual(f); }}));
+  row.appendChild(h("button",{class:"btn",type:"button",text:"Clear",onclick:function(){ clear(box); }}));
+  card.appendChild(row);
+  box.appendChild(card);
+}
+function addManual(f){
+  var id=nextManualId();
+  mergeManual({item_id:id,category:"Unspecified",internal_description:f.name,part_number:f.part,manufacturer_listed:f.manufacturer,equipment_served:f.equipment,key_specs:f.specs,stock_status:"Unknown"});
+  saveManual();
+  $("niForm").reset(); clear($("niEstimate"));
+  msg("Added "+id+" to the queue. It runs only after you approve it.");
+  render();
+}
+function removeManual(id){
+  if(resultMap()[id]) return;
+  state.manual=state.manual.filter(function(m){ return m.item_id!==id; });
+  saveManual(); render();
+}
+var CSV_COLS=["Item_ID","Category","Internal_Description","Part_Number","Manufacturer_Listed","Equipment_Served","Site_Location","Qty","Unit","Key_Specs","Last_Purchase_Date","Stock_Status"];
+function csvCell(v){ v=String(v==null?"":v); if(/^[=+\-@]/.test(v)) v="'"+v; return /[",\n\r]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; }
+function manualCsv(){
+  var lines=[CSV_COLS.join(",")];
+  state.manual.forEach(function(m){
+    lines.push(CSV_COLS.map(function(c){ return csvCell(m[key(c)]); }).join(","));
+  });
+  return "﻿"+lines.join("\r\n")+"\r\n";
+}
+function downloadManual(){
+  if(!state.manual.length) return;
+  try{
+    var blob=new Blob([manualCsv()],{type:"text/csv;charset=utf-8"}), url=URL.createObjectURL(blob);
+    var a=h("a",{href:url,download:"manual_items.csv"}); document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); },2000);
+  }catch(e){ msg("Download is not available here. "+e.message); }
+}
+function renderManual(){
+  var q=$("niQueue"); if(!q) return; clear(q);
+  if(!state.manual.length) return;
+  var rm=resultMap();
+  q.appendChild(h("h4",{text:"Items you entered ("+state.manual.length+")"}));
+  state.manual.forEach(function(m){
+    var r=rm[m.item_id], e=estOf(m), t=e.t;
+    var status = r ? h("span",{class:"pill","data-v":r.compliance_verdict,text:V[r.compliance_verdict].label}) : h("span",{class:"meta",text:"Waiting for your approval"});
+    var meta = h("div",null,h("div",{text:m.internal_description}),h("div",{class:"meta",text:(r?"Checked. ":"")+"Estimate "+mins(t.min[0])+" to "+mins(t.min[1])+" min, "+usd(t.usd[0])+" to "+usd(t.usd[2])+" ("+aed(t.usd[0])+" to "+aed(t.usd[2])+")"}));
+    var cmd="/process-next "+m.item_id;
+    var acts=h("div",{class:"acts"});
+    acts.appendChild(h("button",{class:"btn small",type:"button",text:"Copy command",onclick:function(ev){ copy(cmd, ev.target); }}));
+    var rb=h("button",{class:"btn small",type:"button",text:"Remove",onclick:function(){ removeManual(m.item_id); }}); if(r) rb.disabled=true; acts.appendChild(rb);
+    var idc=h("div",null,h("strong",{text:m.item_id}),h("div",null,status));
+    var row=h("div",{class:"qitem"},idc,meta,acts);
+    row.addEventListener("click",function(ev){ if(ev.target.tagName!=="BUTTON") openDetail(m.item_id); });
+    q.appendChild(row);
+  });
+  var br=h("div",{class:"btnrow"});
+  br.appendChild(h("button",{class:"btn",type:"button",text:"Download manual_items.csv",onclick:downloadManual}));
+  q.appendChild(br);
+  q.appendChild(h("p",{class:"note",text:"Save the file as data/manual_items.csv in the project folder so Claude Code and the app can find these items."}));
+}
+
+/* ---------- demo + auto-load ---------- */
+var DEMO_RESULTS = "item_id,processed_at,category,normalized_name,producer_candidates,matched_producer,alias_notes,fit_status,fit_notes,dubai_rule_refs,compliance_verdict,confidence,evidence_urls,human_decision,notes\n"+
+"INV-0001,2026-01-01T10:00:00,Electrical,Moulded case circuit breaker 3P 250A,Schneider Electric,Schneider Electric,Short name Schneider = Schneider Electric,FIT,Ratings match,DEMO-RULE-1 s2.1,ALLOWED,0.86,https://example.com/demo,approved,DEMO ROW\n"+
+"INV-0002,2026-01-01T10:08:00,Electrical,Contactor 3P 40A coil 230VAC,ABB,ABB,,PARTIAL,Aux contacts unconfirmed,DEMO-RULE-1 s3.4,NEEDS_DOCUMENTS,0.64,https://example.com/demo,pending,DEMO ROW\n"+
+"INV-0003,2026-01-01T10:15:00,Electrical,LV power cable XLPE 4C 185 sq mm Cu,,,,UNKNOWN,Manufacturer missing,,UNKNOWN,0.31,,pending,DEMO ROW\n"+
+"INV-0016,2026-01-01T10:40:00,Fire & Life Safety,Pendant sprinkler K5.6 68C,Johnson Controls (Tyco),Johnson Controls (Tyco),Tyco is a brand of Johnson Controls,FIT,,DEMO-RULE-3 s5.1,NOT_ALLOWED,0.77,https://example.com/demo,rejected,DEMO ROW\n"+
+"INV-0036,2026-01-01T11:02:00,ELV & BMS,DDC controller 16 I/O BACnet,Siemens,Siemens,Siemens AG = Siemens,FIT,,DEMO-RULE-2 s2.2,ALLOWED,0.81,https://example.com/demo,approved,DEMO ROW\n";
+function tryFetch(url, kind){
+  return fetch(url).then(function(r){ if(!r.ok) throw 0; return r.text(); }).then(function(t){
+    var objs=rowsToObjects(parseCSV(t)); if(classify(objs)===kind){ if(kind==="results") setResults(objs); else setInventory(objs); return true; } return false;
+  }).catch(function(){ return false; });
+}
+function init(){
+  $("btnResults").addEventListener("click",function(){ $("fileResults").click(); });
+  $("btnInventory").addEventListener("click",function(){ $("fileInventory").click(); });
+  $("fileResults").addEventListener("change",function(e){ if(e.target.files[0]) readFile(e.target.files[0],"results"); e.target.value=""; });
+  $("fileInventory").addEventListener("change",function(e){ if(e.target.files[0]) readFile(e.target.files[0],"inventory"); e.target.value=""; });
+  $("btnDemo").addEventListener("click",function(){ setResults(rowsToObjects(parseCSV(DEMO_RESULTS))); msg("Showing demo rows. They are fake and not real compliance findings."); render(); });
+  ["q","fVerdict","fCat","fHuman"].forEach(function(id){ $(id).addEventListener("input",renderTable); $(id).addEventListener("change",renderTable); });
+  $("dClose").addEventListener("click",function(){ $("dlg").close ? $("dlg").close() : $("dlg").removeAttribute("open"); });
+  $("dlg").addEventListener("click",function(e){ if(e.target===$("dlg")) $("dlg").close(); });
+  document.addEventListener("dragover",function(e){ e.preventDefault(); });
+  document.addEventListener("drop",function(e){ e.preventDefault(); Array.prototype.forEach.call(e.dataTransfer.files,function(f){ readFile(f,null); }); });
+  $("niForm").addEventListener("submit",function(e){ e.preventDefault(); showEstimate(); });
+  loadManual();
+  render();
+  if(/^https?:$/.test(location.protocol)){
+    var fetchManual=fetch("../data/manual_items.csv").then(function(r){ if(!r.ok) throw 0; return r.text(); }).then(function(t){
+      rowsToObjects(parseCSV(t)).forEach(function(o){ if(/^NEW-\d{4}$/.test(o.item_id||"")) mergeManual(o); }); saveManual();
+    }).catch(function(){});
+    Promise.all([tryFetch("../results/results.csv","results"),tryFetch("../data/inventory_sample.csv","inventory"),fetchManual]).then(render);
+  }
+}
+init();
+})();
+</script>
+</body>
+</html>

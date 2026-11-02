@@ -1,0 +1,51 @@
+﻿Item_ID,Category,Internal_Description,Part_Number,Manufacturer_Listed,Equipment_Served,Site_Location,Qty,Unit,Key_Specs,Last_Purchase_Date,Stock_Status
+INV-0001,Electrical,MCCB 3P 250A breaker spare,NSX250-3P,Schneider,LV Panel MDB-01,Site A - Tower 1,4,pcs,"3P, 250A, 36kA, 415V",2024-03-12,Active
+INV-0002,Electrical,Contactor 3 pole 40A coil 230V,,ABB,Pump Control Panel PCP-02,Site B - Podium,12,pcs,"40A, coil 230VAC",2023-11-02,Active
+INV-0003,Electrical,Cable XLPE 4C x 185mm2 Cu LV armoured,,,Main riser,Central Store,350,m,"4 core 185 sqmm copper, 0.6/1kV",2024-07-19,Active
+INV-0004,Electrical,Cable tray GI 300x50 perforated,CT-300-50,,General stock,Central Store,180,m,"300 mm x 50 mm, HDG, 3 m lengths",2024-05-30,Active
+INV-0005,Electrical,LED downlight 18W 4000K IP44,DL-18-40,Philips,Common areas,Site A - Podium,120,pcs,"18W, 4000K, IP44, 220-240V",2025-01-15,Active
+INV-0006,Electrical,RCBO 1P+N 32A 30mA type A,,Legrand,DB-L12-07,Site A - Tower 1,30,pcs,"32A, 30mA, Type A, 6kA",2024-09-09,Active
+INV-0007,Electrical,Emergency light 3hr maintained,EM-3H-M,,Stairwells,Site B - Tower 2,45,pcs,"3 hr battery, maintained, IP65",2023-06-21,Low stock
+INV-0008,Electrical,"Transformer oil, 2 drums (approx 1000 L total?)",,Shell,11kV/415V TX-03,Central Store,2,drums,"Mineral insulating oil, new",2022-12-10,Active
+INV-0009,HVAC,FCU fan motor 1/10 HP 230V,FM-110,Carrier,FCU Level 12,Site A - Tower 1,8,pcs,"1/10 HP (75W), 230V 50Hz",2024-02-14,Active
+INV-0010,HVAC,Chiller compressor oil POE 5L,,Daikin,Chiller CH-02,Site B - Plant Room,6,cans,"POE, ISO VG 68",2024-04-22,Active
+INV-0011,HVAC,VRV outdoor unit main PCB,RZQ-PCB-A,Daikin Industries,OD-14,Site B - Tower 2,2,pcs,Main control PCB for 10HP VRV,2023-08-01,Low stock
+INV-0012,HVAC,Refrigerant R410A 11.3kg cylinder,,Honeywell,AC Maintenance,Central Store,10,cylinders,"R410A, 11.3 kg",2025-02-03,Active
+INV-0013,HVAC,Flexible duct insulated 250mm,FD-250,,Level 5 fit-out,Site A - Tower 1,60,m,250 mm / 10 inch dia,2024-10-11,Active
+INV-0014,HVAC,Thermostat digital FCU 24V,TS-24D,Honeywell,FCUs,Site A - Podium,40,pcs,"24V, 0-10V output, backlit",2024-12-05,Active
+INV-0015,HVAC,AHU belt B-section 1850,,Gates,AHU-05,Site B - Plant Room,6,pcs,"B-section, length 1850 mm",2022-09-14,Active
+INV-0016,Fire & Life Safety,Sprinkler head pendant 68C K5.6,SP-K56-68,Tyco,Level 3-8 sprinkler,Central Store,200,pcs,"K5.6, 68C, pendant, 1/2 in NPT",2024-06-06,Active
+INV-0017,Fire & Life Safety,Smoke detector photoelectric addressable,SD-ADR-1,Notifier,FACP Loop 2,Site A - Tower 1,60,pcs,"Addressable, photoelectric",2024-08-19,Active
+INV-0018,Fire & Life Safety,Manual call point addressable,,,Fire alarm loop,Site B - Tower 2,25,pcs,"Red, break glass, addressable",2023-12-12,Active
+INV-0019,Fire & Life Safety,Fire pump jockey pump seal kit,,Grundfos,Fire pump room JP-01,Site B - Plant Room,3,kits,"Mechanical seal kit, 3HP pump",2024-01-30,Active
+INV-0020,Fire & Life Safety,Fire hose reel 30m 3/4 inch,FHR-30,,Corridors,Site A - Podium,14,pcs,"30 m, 19 mm hose",2023-05-09,Active
+INV-0021,Fire & Life Safety,Fire extinguisher ABC 6kg,,Kidde,Corridors,Central Store,80,pcs,"ABC dry powder, 6 kg",2025-03-01,Active
+INV-0022,Fire & Life Safety,Fire-rated door set 2hr 1000x2100,FD-2H-1021,,Stairwell doors,Site A - Tower 1,10,sets,"2 hour, 1000 x 2100 mm",2024-11-20,Active
+INV-0023,Fire & Life Safety,Fire damper 400x300 motorised,FDMP-400-300,Belimo,AHU supply duct,Site B - Tower 2,6,pcs,"400 x 300 mm, 24V actuator",2024-05-17,Active
+INV-0024,Plumbing & Pumps,Booster pump mechanical seal 28mm,,Grundfos,Booster BP-02,Site A - Plant Room,5,pcs,Shaft 28 mm,2023-10-10,Active
+INV-0025,Plumbing & Pumps,Pressure gauge 0-16 bar glycerin,PG-16-100,WIKA,Chilled water,Central Store,30,pcs,"0-16 bar, 100 mm dial, 1/2 BSP",2024-03-03,Active
+INV-0026,Plumbing & Pumps,Gate valve DN100 PN16 ductile,,Kitz,Fire/Domestic main,Central Store,15,pcs,"DN100, PN16, flanged",2024-09-26,Active
+INV-0027,Plumbing & Pumps,UPVC pipe 110mm pressure class 6,PVC-110-C6,,Drainage,Site B - Podium,400,m,"110 mm, PN6",2024-06-14,Active
+INV-0028,Plumbing & Pumps,Water meter 2in ultrasonic,,,Metering,Site A - Tower 1,8,pcs,"50 mm, Q3=25",2023-07-18,Active
+INV-0029,Plumbing & Pumps,Submersible sump pump 2.2kW,SP-22,Lowara,Basement sump,Site B - Basement,2,pcs,"2.2 kW, 3-phase 415V",2022-05-05,Active
+INV-0030,Lifts & Escalators,Lift door roller set,LDR-A,Otis,Lift L3,Site A - Tower 1,4,sets,"Landing door rollers, set of 4",2024-02-02,Active
+INV-0031,Lifts & Escalators,Lift governor rope 8mm 60m,,KONE,Lift L1,Site B - Tower 2,1,pcs,"8 mm steel wire, 60 m",2023-09-09,Active
+INV-0032,Lifts & Escalators,Lift car operating panel PCB,COP-PCB-X,Schindler,Lift L5,Site A - Podium,1,pcs,COP main board,2021-04-04,Obsolete
+INV-0033,Lifts & Escalators,Escalator handrail 12m,,Mitsubishi Electric,ES-02,Site A - Podium,2,pcs,"12 m, black",2023-03-15,Active
+INV-0034,ELV & BMS,CCTV IP camera 4MP dome,CAM-4MP-D,Hikvision,CCTV Level 1,Central Store,20,pcs,"4 MP, IP67, PoE",2024-10-20,Active
+INV-0035,ELV & BMS,Network switch 24-port PoE,,Cisco,ELV room,Site B - Tower 2,3,pcs,"24 port, PoE+, managed",2024-12-12,Active
+INV-0036,ELV & BMS,BMS controller DDC 16 I/O,,Siemens AG,Plant Room BMS,Site A - Plant Room,4,pcs,"16 I/O, BACnet",2023-04-04,Active
+INV-0037,ELV & BMS,Access control card reader,AC-RD-MF,HID,Entrances,Site A - Tower 1,25,pcs,"13.56 MHz, Wiegand",2024-07-07,Active
+INV-0038,Building Materials,Waterproofing membrane 4mm torch-on,,Sika,Roof,Central Store,40,rolls,"4 mm, APP, 10 m roll",2024-08-08,Active
+INV-0039,Building Materials,Tile adhesive C2 25kg,,Mapei,Fit-out,Central Store,200,bags,"C2 TE, 25 kg",2025-01-22,Active
+INV-0040,Building Materials,Rebar steel Grade 60 16mm,,,Podium slab,Central Store,12,tonnes,"16 mm, Gr 60, 12 m",2024-03-28,Active
+INV-0041,Building Materials,Gypsum board 12.5mm fire rated,GB-125-FR,Knauf,Partitions,Site A - Tower 1,300,sheets,"1200 x 2400, 12.5 mm, fire rated",2024-11-02,Active
+INV-0042,Building Materials,Intumescent fire sealant 310ml,,Hilti,Penetration sealing,Site B - Tower 2,90,cartridges,"310 ml, acrylic",2024-06-30,Active
+INV-0043,Building Materials,Facade structural sealant 600ml,SS-STR-1,Dow Corning,Curtain wall,Site A - Tower 1,60,pcs,"600 ml, structural glazing",2024-05-21,Active
+INV-0044,Building Materials,Aluminium composite panel 4mm FR core,ACP-4-FR,,Cladding,Central Store,120,sheets,"4 mm, FR core, 1250 x 3200",2024-04-18,Active
+INV-0045,Safety & PPE,Safety helmet white EN397,,3M,Site crews,Central Store,150,pcs,"EN 397, white",2025-02-10,Active
+INV-0046,Safety & PPE,Full body harness EN361,HRN-2PT,Miller,Work at height,Central Store,30,pcs,"EN 361, 2-point",2024-09-15,Active
+INV-0047,Safety & PPE,Gas detector multi 4-gas,,,Confined space,Site B - Basement,4,pcs,"O2, CO, H2S, LEL",2023-02-02,Active
+INV-0048,Electrical,MCCB 250A 3 pole spare Schneider Electric,NSX250-3P,Schneider Electric,LV Panel MDB-01,Site A - Tower 1,2,pcs,"250 amp, 3P",2025-04-04,Active
+INV-0049,Plumbing & Pumps,مضخة مياه booster pump spare impeller,,Grundfos,Booster BP-02,Site A - Plant Room,1,pcs,"Impeller, CR 32",2023-12-01,Active
+INV-0050,General,"Misc spares: filters, belts, fuses",,,General,Central Store,1,lot,assorted,2022-01-01,Unknown
