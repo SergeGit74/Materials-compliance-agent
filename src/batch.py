@@ -24,7 +24,8 @@ REJECT_MIN_ITEMS = 5  # do not judge a rate from fewer items than this
 class BatchRunner:
     def __init__(self, items: list[dict], models_factory, concurrency: int = 1, spend_cap: float = 0.0,
                  stop_after_each: bool = False, results_path: Path = config.RESULTS_CSV,
-                 items_dir: Path = config.ITEMS_DIR):
+                 items_dir: Path = config.ITEMS_DIR, item_gate=None):
+        self.item_gate = item_gate  # called once before each item starts; False pauses the batch (public-demo cap, src/demo.py)
         self.queue = deque(items)
         self.total = len(items)
         self.models_factory = models_factory
@@ -144,6 +145,9 @@ class BatchRunner:
                         self.state = "waiting_continue"
                     elif idx >= self._effective_concurrency():
                         self.state = "running"
+                    elif self.item_gate is not None and not self.item_gate():
+                        self._pause("real-run cap for this demo reached")
+                        continue
                     else:
                         self.state = "running"
                         break

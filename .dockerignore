@@ -1,0 +1,15 @@
+.env
+.venv/
+.git/
+.claude/
+.pytest_cache/
+__pycache__/
+**/__pycache__/
+.streamlit/secrets.toml
+reviewer.local.json
+results/cache/
+results/uploads/
+results/adopted_backup/
+rules_staging/downloads/
+rules/*.pdf
+tests/

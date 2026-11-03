@@ -3,13 +3,14 @@
 Reads and writes the same results/results.csv and results/items/ files as the CLI and the static
 dashboard. Mock models by default; the sidebar switch turns on the real clients (src/clients.py), which spend API credits.
 """
+import os
 import time
 from pathlib import Path
 
 import pandas as pd
 import streamlit as st
 
-from src import adopt, appcore, clients, config, intake, inventory, pipeline, realruns, reviewview, settings, store
+from src import adopt, appcore, clients, config, demo, fetch_rules, intake, inventory, pipeline, realruns, reviewview, settings, store
 from src.batch import BatchRunner
 from src.evaluate import run_costs
 from src.clients import make_models
@@ -21,10 +22,41 @@ PAGES = ["Run", "Queue", "Review", "Rulebooks", "Charts", "Check a new item", "U
 ACTIVE_STATES = ("running", "paused", "waiting_continue")
 
 
+def in_demo() -> bool:
+    return demo.is_demo()
+
+
+def real_on() -> bool:
+    """The sidebar switch, and in demo mode also the passcode: a locked demo never uses the real models, whatever the switch says."""
+    on = bool(st.session_state.get("use_real", False))
+    return on and (not in_demo() or bool(st.session_state.get("demo_unlocked")))
+
+
+def limiter() -> demo.DemoLimiter:
+    if "demo_limiter" not in st.session_state:
+        st.session_state["demo_limiter"] = demo.DemoLimiter(*demo.caps())
+    return st.session_state["demo_limiter"]
+
+
+def cap_reached() -> bool:
+    """Demo mode, real models on, and no real-mode item left in this session or today."""
+    return in_demo() and real_on() and limiter().remaining() < 1
+
+
+def charge(n: int = 1) -> bool:
+    """Take n real-mode items from the demo caps before a real run starts. Always True outside demo mode and in mock mode."""
+    if not (in_demo() and real_on()):
+        return True
+    if limiter().reserve(n):
+        return True
+    st.session_state["demo_msg"] = "The real-mode limit for this demo is used up (" + limiter().summary() + "). Mock mode still works."
+    return False
+
+
 def models_factory(real: bool | None = None):
     """Mock by default. Real clients spend API credits and are used only when the sidebar switch is on."""
     if real is None:
-        real = bool(st.session_state.get("use_real", False))
+        real = real_on()
     return make_models(real)
 
 
@@ -92,6 +124,8 @@ def run_single(item: dict, redo: bool) -> None:
     if appcore.mock_would_overwrite(models_factory(), redo):
         st.error(appcore.MOCK_OVERWRITE_MESSAGE)
         return
+    if not charge():
+        return
     started = time.time()
     holder = st.empty()
 
@@ -116,11 +150,13 @@ def mode_a(items, rows_by_id) -> None:
     st.toggle("Stop after each item", value=True, disabled=True,
               help="Always on in Mode A: nothing runs until you Approve, Reject or Skip the last result.")
     awaiting = st.session_state.get("awaiting")
-    blocked = bool(awaiting) or batch_active()
+    blocked = bool(awaiting) or batch_active() or cap_reached()
     nxt = inventory.next_item(items, set(rows_by_id))
 
     if batch_active():
         st.warning("A batch is active. Mode A is disabled until it finishes or is stopped.")
+    if cap_reached():
+        st.warning("The real-mode limit for this demo is used up. Turn the real-models switch off to use mock mode.")
     if nxt:
         est = inventory.estimate_tier(nxt["Manufacturer_Listed"], nxt["Part_Number"], nxt["Key_Specs"])
         st.write(f"Next item: **{nxt['Item_ID']}**, {nxt['Internal_Description']}")
@@ -138,7 +174,7 @@ def mode_a(items, rows_by_id) -> None:
     with st.expander("Run this item (reruns and replaces that item's row)"):
         ids = [i["Item_ID"] for i in items]
         pick = st.selectbox("Item", ids, format_func=lambda x: f"{x}  {next(i for i in items if i['Item_ID'] == x)['Internal_Description'][:60]}")
-        would_replace = pick in rows_by_id and not st.session_state.get("use_real")
+        would_replace = pick in rows_by_id and not real_on()
         if would_replace:
             st.warning(appcore.MOCK_OVERWRITE_MESSAGE)
         if st.button("Run this item", disabled=blocked or would_replace):
@@ -184,14 +220,18 @@ def confirm_dialog(ids: list[str], cfg: dict) -> None:
     st.write(f"**Spend cap:** ${cfg['cap']:.2f}  |  **Stop after each item:** {'on' if cfg['stop_each'] else 'off'}"
              f"  |  **Safety-critical items:** {'excluded' if cfg['exclude_safety'] else 'INCLUDED'}")
     st.caption("Planning estimates from README 7.4, not measurements. MOCK MODE: this run makes no model or web calls.")
+    if in_demo() and real_on():
+        st.warning(f"Demo limit: a real batch stops when the real-mode items run out. {limiter().summary()}.")
     ok = st.checkbox(f"I approve running {n} items with a cap of ${cfg['cap']:.2f}", key="dlg_ok")
     ok2 = True
     if not cfg["exclude_safety"]:
         ok2 = st.checkbox("I confirm that safety-critical items are included in this batch. "
                           "They will still end with human_decision = pending.", key="dlg_ok2")
     if st.button("Start", type="primary", disabled=not (ok and ok2)):
-        runner = BatchRunner([i for i in cfg["items"]], (lambda r=bool(st.session_state.get("use_real", False)): models_factory(r)), concurrency=cfg["concurrency"],
-                             spend_cap=cfg["cap"], stop_after_each=cfg["stop_each"])
+        use_real = real_on()
+        gate = limiter().reserve if (in_demo() and use_real) else None  # one real-mode item is taken before each item starts
+        runner = BatchRunner([i for i in cfg["items"]], (lambda r=use_real: models_factory(r)), concurrency=cfg["concurrency"],
+                             spend_cap=cfg["cap"], stop_after_each=cfg["stop_each"], item_gate=gate)
         st.session_state.runner = runner
         runner.start()
         st.rerun()
@@ -321,7 +361,10 @@ def verdict_banner(row: dict) -> None:
 def real_trial_tab(row: dict, trial: dict | None) -> None:
     """Second opinion from the real model clients, shown next to the main result. It never changes results.csv or the decision."""
     if not trial:
-        st.info("No real-mode trial for this item. Run one with:  python -m src.realtrial " + row["item_id"] + "  (spends API credits).")
+        if in_demo():
+            st.info("No real-mode trial is stored for this item. Trials cannot be started from the demo; use Check a new item with the real models.")
+        else:
+            st.info("No real-mode trial for this item. Run one with:  python -m src.realtrial " + row["item_id"] + "  (spends API credits).")
         return
     status = realruns.compare(row, trial)
     msg = (f"Real-mode verdict {trial['verdict']} (confidence {trial['confidence']}) against the main result {row['compliance_verdict']} "
@@ -669,6 +712,8 @@ def text_row(row: dict) -> dict:
 
 def run_manual_check(item: dict, real: bool, est: dict) -> None:
     """Run one manual entry through the same pipeline as the CSV items and show each stage while it runs."""
+    if real and not charge():
+        return
     started = time.time()
     typical = max(est["seconds"][1], 1)
     bar = st.progress(0.0, text="Starting")
@@ -797,7 +842,7 @@ def page_check(items, rows, rows_by_id) -> None:
     st.header("Check a new item")
     if st.session_state.get("manual_msg"):
         st.success(st.session_state.pop("manual_msg"))
-    real = bool(st.session_state.get("use_real"))
+    real = real_on()
     st.caption("Type any piece of equipment or material. It goes through the same steps as the items from the CSV file: identify it, search for makers and "
                "analogues from other producers, compare the technical parameters, check the Dubai rulebooks, and verify. Nothing is saved until you say so.")
     st.warning("Type only the product, not prices, stock levels, site names, asset codes or project names. Only the product type, specs and brand are used for web search.")
@@ -835,9 +880,11 @@ def page_check(items, rows, rows_by_id) -> None:
     if dupes:
         st.warning(f"An item with this name already exists: {', '.join(d['Item_ID'] for d in dupes)}.")
         allow = st.checkbox("Check it anyway", key="n_dup")
-    busy = batch_active()
-    if busy:
+    busy = batch_active() or cap_reached()
+    if batch_active():
         st.warning("A batch is running. Wait for it to finish or stop it first.")
+    if cap_reached():
+        st.warning("The real-mode limit for this demo is used up. Turn the real-models switch off to use mock mode.")
     label = f"Run check (about ${est['cost'][1]:.2f}, about {est['seconds'][1]} s)" if real else "Run mock check (free)"
     if st.button(label, type="primary", disabled=not allow or busy, key="m_run"):
         item = inventory.make_manual_item(clean, manu, part, specs, equip, cat, results_ids=set(rows_by_id))
@@ -887,10 +934,69 @@ def page_upload(items, rows, rows_by_id) -> None:
     st.caption("Uploads are stored in results/uploads/ (not committed). Files in data/ are never modified.")
 
 
+# ---------- first start and demo mode ----------
+
+@st.cache_resource(show_spinner="First start: fetching the rulebooks listed in rules/INDEX.md and building the clause index. This can take a few minutes.")
+def bootstrap_rules() -> dict:
+    """Once per server process. If rules/ holds no confirmed PDF, download the listed ones (same logic as python -m src.fetch_rules), then build the
+    clause index so the first check does not wait for it. Never raises: the app starts even if a download or the index fails."""
+    info = fetch_rules.ensure_rules()
+    if info["ran"] or in_demo():
+        try:
+            idx = clients.current_index()
+            info["skipped"] = {r["file"]: r["status"] for r in idx.report if r["status"].startswith(("skipped", "missing"))}
+        except Exception as e:
+            info["problems"].append({"file": "(clause index)", "status": "failed", "note": f"{type(e).__name__} while building the index"})
+    return info
+
+
+def show_bootstrap_notice(info: dict) -> None:
+    lines = [f"{p['file']}: {p['status']}" + (f" ({p['note']})" if p["note"] else "") for p in info["problems"]]
+    lines += [f"{f}: {why}" for f, why in info.get("skipped", {}).items()]
+    if lines:
+        st.warning("Some rulebooks are not available, so rules in them cannot be cited until they are added (python -m src.fetch_rules):\n\n"
+                   + "\n".join(f"- {x}" for x in lines))
+    elif info["ran"]:
+        st.caption(f"First start: {info['installed']} rulebook file(s) downloaded from their publishers.")
+
+
+def demo_sidebar() -> None:
+    """Passcode for the real models and the remaining real-mode items. The passcode itself is never shown."""
+    st.sidebar.divider()
+    st.sidebar.subheader("Demo access")
+    if st.session_state.get("demo_msg"):
+        st.sidebar.warning(st.session_state.pop("demo_msg"))
+    if st.session_state.get("demo_unlocked"):
+        st.sidebar.success("Real models unlocked for this session.")
+    else:
+        expected = os.environ.get("DEMO_PASSCODE", "")
+        tries = st.session_state.get("demo_tries", 0)
+        if not expected:
+            st.sidebar.info("Real models are not enabled for this demo (no passcode is configured). Mock mode only.")
+        elif tries >= demo.MAX_PASSCODE_TRIES:
+            st.sidebar.error("Too many wrong attempts in this session. Mock mode only.")
+        else:
+            st.sidebar.caption("Mock models are free. To use the real models, enter the passcode you were given.")
+            code = st.sidebar.text_input("Passcode", type="password", key="demo_code")
+            typed = st.sidebar.text_input('Type "spend" to accept that real runs use API credits', key="demo_spend")
+            if st.sidebar.button("Unlock real models", key="demo_unlock"):
+                if demo.check_passcode(code, expected) and typed.strip().lower() == "spend":
+                    st.session_state["demo_unlocked"] = True
+                else:
+                    st.session_state["demo_tries"] = tries + 1
+                    st.session_state["demo_msg"] = 'Passcode or confirmation wrong. The confirmation is the word "spend".'
+                st.rerun()
+    st.sidebar.caption(limiter().summary())
+
+
 # ---------- main ----------
 
 def main() -> None:
     st.set_page_config(page_title="Materials Compliance Agent (Dubai)", layout="wide")
+    config.apply_secrets()  # environment first, then Streamlit secrets, then .env
+    if in_demo():
+        st.info("Demo on synthetic data. Saved decisions are not kept after the app restarts.")
+    show_bootstrap_notice(bootstrap_rules())
     missing = config.missing_env()
     if missing:
         st.error("Missing or invalid .env settings: " + ", ".join(missing))
@@ -902,19 +1008,23 @@ def main() -> None:
         st.stop()
 
     st.sidebar.title("Materials Compliance (Dubai)")
-    if "reviewer" not in st.session_state:
-        st.session_state["reviewer"] = settings.get_reviewer() or settings.DEFAULT_REVIEWER
-    st.sidebar.text_input("Your name (recorded with decisions)", key="reviewer")
-    if st.session_state["reviewer"].strip() not in (settings.get_reviewer(), settings.DEFAULT_REVIEWER):
+    if "reviewer" not in st.session_state:  # a demo never reads or writes a personal name
+        st.session_state["reviewer"] = settings.DEFAULT_REVIEWER if in_demo() else (settings.get_reviewer() or settings.DEFAULT_REVIEWER)
+    st.sidebar.text_input("Your name (recorded with decisions)", key="reviewer", disabled=in_demo())
+    if not in_demo() and st.session_state["reviewer"].strip() not in (settings.get_reviewer(), settings.DEFAULT_REVIEWER):
         if st.sidebar.checkbox("Remember on this computer only (never exported)", key="remember_reviewer"):
             settings.set_reviewer(st.session_state["reviewer"])
             st.sidebar.caption("Saved to reviewer.local.json, which git and the export tool ignore.")
     page = st.sidebar.radio("Screen", PAGES, key="page")
     st.sidebar.caption("Rulebooks: Dubai, English only. A verdict here is never a complete compliance answer.")
-    st.sidebar.checkbox("Use real models (spends API credits)", key="use_real",
-                        help="Off: mock models, no model or web call. On: Anthropic, Serper and Voyage calls with the models set in .env.")
-    if st.session_state.get("use_real"):
+    locked = in_demo() and not st.session_state.get("demo_unlocked")
+    st.sidebar.checkbox("Use real models (spends API credits)", key="use_real", disabled=locked,
+                        help="Off: mock models, no model or web call. On: Anthropic, Serper and Voyage calls with the models set in .env or the app secrets."
+                        + (" Locked until you enter the demo passcode below." if locked else ""))
+    if real_on():
         st.sidebar.warning("Real mode: every run spends API credits. Check the estimate and spend cap before you run.")
+    if in_demo():
+        demo_sidebar()
     if config.RESULTS_CSV.exists():
         st.sidebar.download_button("Download results.csv", config.RESULTS_CSV.read_bytes(), "results.csv", "text/csv")
     {"Run": page_run, "Queue": page_queue, "Review": page_review, "Rulebooks": page_rulebooks, "Charts": page_charts,

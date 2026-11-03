@@ -7,3 +7,5 @@ rules_staging/downloads/
 results/evidence/*.tmp
 reviewer.local.json
 results/adopted_backup/
+.streamlit/secrets.toml
+rules/*.pdf

@@ -71,6 +71,36 @@ REQUIRED_ENV = (
     "MAX_STEPS_PER_ITEM", "MAX_TOKENS_PER_ITEM",
 )
 OPTIONAL_ENV = ("SERPER_API_KEY",)
+# Names that may also come from Streamlit secrets (a deployment has no .env file).
+SECRET_NAMES = REQUIRED_ENV + OPTIONAL_ENV + (
+    "USE_VOYAGE_RERANK", "DEMO_MODE", "DEMO_PASSCODE", "DEMO_MAX_REAL_ITEMS_PER_SESSION", "DEMO_MAX_REAL_ITEMS_PER_DAY",
+)
+
+
+def apply_secrets(secrets=None, environ=None) -> list[str]:
+    """Fill settings that are not in the process environment from Streamlit secrets. The order is: environment variable, then st.secrets,
+    then .env (python-dotenv never overrides a variable that is already set, so .env only fills what is still empty).
+    Returns the NAMES that were filled, never the values. No secrets file is not an error."""
+    environ = os.environ if environ is None else environ
+    if secrets is None:
+        try:
+            import streamlit as st
+            secrets = st.secrets
+            secrets.get("_probe")  # raises when there is no secrets file
+        except Exception:
+            return []
+    applied = []
+    for name in SECRET_NAMES:
+        if str(environ.get(name, "")).strip():
+            continue
+        try:
+            value = secrets.get(name)
+        except Exception:
+            value = None
+        if value is not None and str(value).strip():
+            environ[name] = str(value).strip()
+            applied.append(name)
+    return applied
 
 
 def item_safety_text(item: dict) -> str:

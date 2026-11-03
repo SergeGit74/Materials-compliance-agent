@@ -29,7 +29,7 @@ A prototype that checks inventory items (construction and real estate materials 
 - `results/results.csv` main result; `results/items/*.md` reports; `results/real_runs.csv` trials; `results/decisions.csv` audit log.
 
 ## How to work here
-- Windows. Use `.venv/Scripts/python`. Set `PYTHONIOENCODING=utf-8` for consoles. Run `python -m pytest -q` (185 tests, no network) after every code change; add a test for every new behaviour. Tests must not call real APIs.
+- Windows. Use `.venv/Scripts/python`. Set `PYTHONIOENCODING=utf-8` for consoles. Run `python -m pytest -q` (204 tests, no network) after every code change; add a test for every new behaviour. Tests must not call real APIs.
 - Prefer small scripts written with the Write tool over long shell heredocs (quoting breaks on Windows). Put scratch files in the scratchpad directory, not in the project.
 - Back up `results/results.csv` and the item's report before replacing a row. Replace only that item's row (`store.replace_row`). Keep earlier report text and add a dated section.
 - Real calls cost money: say the estimate first (about $0.14 per item, $0.30 to $1.50 per group), get a yes, run one batch at a time (two runs writing together can overwrite `real_runs.csv`), then report results in a table with the comparison to the main result.
@@ -47,6 +47,9 @@ The Check a new item screen runs a typed entry through `pipeline.run_item` like 
 
 ## Fetching rulebooks
 `python -m src.fetch_rules` re-downloads PDFs listed in `rules/INDEX.md` (https, issuer hosts only, checksum-checked against `rules/CHECKSUMS.json`; a changed edition is held in staging). Run `--write-checksums` before every export so the file is current.
+
+## Hosted demo
+`DEMO_MODE=true` (README "Deploying to Streamlit Community Cloud"): secrets lookup is environment, then `st.secrets`, then `.env` (`config.apply_secrets`); `src/demo.py` holds the passcode check and the per-session and per-day real-run caps; every real-run path in `app.py` goes through `charge()`, and `BatchRunner` takes an `item_gate`. A new real-run path must reserve from the limiter too. `packages.txt` (poppler-utils) is needed for `pdftotext`. The export tool never copies `.streamlit/secrets.toml`.
 
 ## GitHub
 The clean export is pushed to https://github.com/SergeGit74/Materials-compliance-agent (remote `origin` of the export folder, not of this project). The licence names Serguei Preobrajenski as copyright holder; keep that name out of reviewer data. Push again only when asked. Update the export folder in place with `python -m src.export_clean <repo folder> --update` (no new folder), review `git status`, then commit and push.

@@ -29,7 +29,7 @@ from pathlib import Path
 from . import config, settings
 
 ALWAYS_SKIP_DIRS = {".git", ".venv", "__pycache__", ".pytest_cache", "cache", "uploads", "downloads", "adopted_backup"}
-ALWAYS_SKIP_FILES = {".env", "reviewer.local.json"}
+ALWAYS_SKIP_FILES = {".env", "reviewer.local.json", "secrets.toml"}
 TEXT_SUFFIXES = {".csv", ".md", ".json", ".txt", ".py", ".html", ".yaml", ".yml", ".toml", ".cfg"}
 MAX_BYTES = 95 * 1024 * 1024
 PLACEHOLDER = "[reviewer]"

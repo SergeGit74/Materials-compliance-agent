@@ -124,6 +124,36 @@ def fetch(rules_dir: Path = config.RULES_DIR, *, only: str = "", dry_run: bool =
     return out
 
 
+def has_confirmed_pdf(rules_dir: Path = config.RULES_DIR) -> bool:
+    """True when at least one PDF that INDEX.md lists as confirmed is already in rules/."""
+    rules_dir = Path(rules_dir)
+    for r in intake.index_rows(rules_dir):
+        confirmed = bool(r["confirmed_by"]) and not r["confirmed_by"].upper().startswith("PENDING")
+        if confirmed and r["file"].lower().endswith(".pdf") and (rules_dir / r["file"]).exists():
+            return True
+    return False
+
+
+def ensure_rules(rules_dir: Path = config.RULES_DIR, *, http: httpx.Client | None = None, staging_dir: Path | None = None,
+                 max_bytes: int = MAX_BYTES) -> dict:
+    """First start of a hosted copy that ships without the PDFs: when rules/ holds no confirmed PDF, run the same download as
+    `python -m src.fetch_rules` (https, issuer hosts only, never overwrites, checksum rule unchanged). It never raises: the app must
+    start even if every download fails. Returns {"ran", "installed", "problems": [{"file", "status", "note"}]}."""
+    out = {"ran": False, "installed": 0, "problems": []}
+    try:
+        if has_confirmed_pdf(rules_dir):
+            return out
+        out["ran"] = True
+        for r in fetch(rules_dir, http=http, staging_dir=staging_dir, max_bytes=max_bytes):
+            if r["status"] == "installed":
+                out["installed"] += 1
+            elif r["status"] in ("failed", "changed"):
+                out["problems"].append({"file": r["file"], "status": r["status"], "note": r["note"]})
+    except Exception as e:  # nothing here may stop the app from starting
+        out["problems"].append({"file": "(all)", "status": "failed", "note": f"{type(e).__name__} while fetching"})
+    return out
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="Download the rulebook PDFs listed in rules/INDEX.md that are missing from rules/.")
     ap.add_argument("--dry-run", action="store_true", help="list what would be downloaded; no network")
