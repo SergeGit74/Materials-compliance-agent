@@ -3,7 +3,7 @@ import argparse
 import re
 import sys
 
-from . import config, inventory, pipeline, store
+from . import appcore, config, inventory, pipeline, store
 from .clients import make_models
 from .models import MockModels
 
@@ -37,6 +37,9 @@ def ask_permission(nxt: dict) -> tuple[str, str | None]:
 
 
 def process(item: dict, models, redo: bool) -> None:
+    if appcore.mock_would_overwrite(models, redo):
+        print(f"{item['Item_ID']}: not rerun. {appcore.MOCK_OVERWRITE_MESSAGE}")
+        return
     result = pipeline.run_item(item, models)
     (store.replace_row if redo else store.append_row)(result["row"])
     path = store.write_report(item["Item_ID"], result["report"])

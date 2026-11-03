@@ -87,3 +87,73 @@ def test_a_rulebook_listed_but_not_downloaded_is_reported_as_missing(tmp_path):
     d = rules(tmp_path, [("a.pdf", "https://dmpmedia.dm.gov.ae/a.pdf")])
     idx = rules_index.RuleIndex(d, tmp_path / "c.json").load()
     assert [(r["file"], r["status"].split(":")[0]) for r in idx.report] == [("a.pdf", "missing")] and not idx.chunks
+
+
+def test_app_has_no_bare_conditional_expression_statements():
+    """A bare `st.x(...) if c else st.y(...)` line is shown on screen by Streamlit's magic as its text and object repr."""
+    import ast
+    from pathlib import Path
+    tree = ast.parse((Path(__file__).resolve().parent.parent / "app.py").read_text(encoding="utf-8"))
+    bad = [n.lineno for n in ast.walk(tree) if isinstance(n, ast.Expr) and isinstance(n.value, ast.IfExp)]
+    assert bad == [], f"bare conditional expression statements at lines {bad}"
+
+
+def test_documents_needed_are_read_from_the_notes_one_per_numbered_entry():
+    from src.pipeline import documents_needed
+    notes = ("Rule applies. Documents needed: (1) a maker erection manual showing the 6 m build; (2) the maker's load rating, since the rule has classes at 1.2/2.4 kN/m2; "
+             "(3) the contractor's design approved by the engineering office, and an inspection certificate before use. The excerpts do not name EN 1004.")
+    got = documents_needed(notes)
+    assert len(got) == 3 and got[0].startswith("a maker erection manual") and got[1].startswith("the maker's load rating") and got[2].endswith("before use")
+    assert documents_needed("No documents are named here.") == []
+
+
+def test_manual_item_keeps_the_chosen_category_and_defaults_to_unspecified(tmp_path):
+    from src import inventory
+    m = tmp_path / "m.csv"
+    assert inventory.make_manual_item("Mobile aluminium scaffold tower", manual_path=m)["Category"] == "Unspecified"
+    row = inventory.add_manual_item("Mobile aluminium scaffold tower", category="Safety & PPE", manual_path=m)
+    assert row["Category"] == "Safety & PPE" and "Safety & PPE" in m.read_text(encoding="utf-8")
+
+
+def test_documents_needed_covers_the_other_wordings_the_model_uses():
+    from src.pipeline import documents_needed
+    notes = ("Rule 8-11-2 limits tower height. Needed from the maker: a datasheet showing stabiliser base width, and an access ladder. Also needed: the safe working load against "
+             "the duty classes (8-5), with a 4x safety factor. Platform width meets the minimum. Site-side documents: the scaffold design approved by the engineering office, "
+             "third-party inspection certificate and tags (8-1, 8-10). The Unitech page is weaker evidence.")
+    got = documents_needed(notes)
+    assert len(got) == 3 and got[0].startswith("a datasheet") and got[1].startswith("the safe working load") and got[2].startswith("the scaffold design") and got[2].endswith("(8-1, 8-10)")
+
+
+def test_update_in_place_copies_changes_deletes_removed_files_and_keeps_git(tmp_path):
+    from src import export_clean
+    built, repo = tmp_path / "built", tmp_path / "repo"
+    (built / "src").mkdir(parents=True)
+    (repo / ".git").mkdir(parents=True)
+    (repo / "old").mkdir()
+    (built / "a.md").write_text("new", encoding="utf-8")
+    (built / "src" / "b.py").write_text("same", encoding="utf-8")
+    (built / "c.md").write_text("added", encoding="utf-8")
+    (repo / "a.md").write_text("old", encoding="utf-8")
+    (repo / "src").mkdir()
+    (repo / "src" / "b.py").write_text("same", encoding="utf-8")
+    (repo / "gone.md").write_text("x", encoding="utf-8")
+    (repo / "old" / "z.md").write_text("x", encoding="utf-8")
+    (repo / ".git" / "HEAD").write_text("ref", encoding="utf-8")
+    rep = export_clean.sync(built, repo)
+    assert rep == {"added": ["c.md"], "changed": ["a.md"], "removed": ["gone.md", "old/z.md"]}
+    assert (repo / "a.md").read_text(encoding="utf-8") == "new" and not (repo / "old").exists() and (repo / ".git" / "HEAD").exists()
+    import pytest
+    with pytest.raises(ValueError, match="not a git repository"):
+        export_clean.sync(built, tmp_path / "plain")
+
+
+def test_a_mock_run_may_not_replace_an_existing_result(tmp_path, monkeypatch, capsys):
+    from src import appcore, run, store
+    from src.models import MockModels
+    assert appcore.mock_would_overwrite(MockModels(), True) and not appcore.mock_would_overwrite(MockModels(), False)
+    assert not appcore.mock_would_overwrite(object(), True)  # real models may replace a result (a redo)
+    calls = []
+    monkeypatch.setattr(run.pipeline, "run_item", lambda *a, **k: calls.append(1))
+    monkeypatch.setattr(store, "replace_row", lambda r: calls.append("replace"))
+    run.process({"Item_ID": "INV-0001"}, MockModels(), redo=True)
+    assert calls == [] and "not rerun" in capsys.readouterr().out

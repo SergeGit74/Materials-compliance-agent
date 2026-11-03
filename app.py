@@ -89,6 +89,9 @@ def decision_buttons(item_id: str, key: str, extra: dict | None = None) -> str |
 # ---------- Run: Mode A ----------
 
 def run_single(item: dict, redo: bool) -> None:
+    if appcore.mock_would_overwrite(models_factory(), redo):
+        st.error(appcore.MOCK_OVERWRITE_MESSAGE)
+        return
     started = time.time()
     holder = st.empty()
 
@@ -135,7 +138,10 @@ def mode_a(items, rows_by_id) -> None:
     with st.expander("Run this item (reruns and replaces that item's row)"):
         ids = [i["Item_ID"] for i in items]
         pick = st.selectbox("Item", ids, format_func=lambda x: f"{x}  {next(i for i in items if i['Item_ID'] == x)['Internal_Description'][:60]}")
-        if st.button("Run this item", disabled=blocked):
+        would_replace = pick in rows_by_id and not st.session_state.get("use_real")
+        if would_replace:
+            st.warning(appcore.MOCK_OVERWRITE_MESSAGE)
+        if st.button("Run this item", disabled=blocked or would_replace):
             run_single(next(i for i in items if i["Item_ID"] == pick), redo=pick in rows_by_id)
             st.rerun()
 
@@ -440,7 +446,10 @@ def review_detail(row: dict, items_by_id: dict, trial: dict | None = None) -> No
             st.write(row["alias_notes"])
     with tabs[4]:
         rp = config.ITEMS_DIR / f"{iid}.md"
-        st.markdown(rp.read_text(encoding="utf-8")) if rp.exists() else st.info("No report file.")
+        if rp.exists():
+            st.markdown(rp.read_text(encoding="utf-8"))
+        else:
+            st.info("No report file.")
     with tabs[5]:
         real_trial_tab(row, trial)
     with tabs[6]:
@@ -730,7 +739,10 @@ def manual_result_panel(items, rows, rows_by_id) -> None:
     t1, t2, t3, t4 = st.tabs(["Rules cited", "Missing and open points", "Notes", "Full report"])
     with t1:
         cited = reviewview.rules_cited(row)
-        st.dataframe(pd.DataFrame(cited).rename(columns={"in_rules_folder": "file in rules/"}), width="stretch", hide_index=True) if cited else st.info("No rule from rules/ is cited.")
+        if cited:
+            st.dataframe(pd.DataFrame(cited).rename(columns={"in_rules_folder": "file in rules/"}), width="stretch", hide_index=True)
+        else:
+            st.info("No rule from rules/ is cited.")
     with t2:
         for q in res["open_questions"] or ["Nothing listed."]:
             st.markdown(f"- {q}")
@@ -796,6 +808,8 @@ def page_check(items, rows, rows_by_id) -> None:
         part = st.text_input("Part number", key="n_part", max_chars=200)
         specs = st.text_input("Key specs", key="n_specs", max_chars=200)
         equip = st.text_input("Equipment it serves", key="n_equip", max_chars=200)
+        known = sorted({i["Category"] for i in items if i.get("Category") and i["Category"] != "Unspecified"})
+        cat = st.selectbox("Category", ["Unspecified"] + known, key="n_cat", help="Used to group the item in Review. The app can work it out when left unspecified.")
     try:
         clean = inventory.validate_name(name) if name.strip() else ""
         err = ""
@@ -826,12 +840,12 @@ def page_check(items, rows, rows_by_id) -> None:
         st.warning("A batch is running. Wait for it to finish or stop it first.")
     label = f"Run check (about ${est['cost'][1]:.2f}, about {est['seconds'][1]} s)" if real else "Run mock check (free)"
     if st.button(label, type="primary", disabled=not allow or busy, key="m_run"):
-        item = inventory.make_manual_item(clean, manu, part, specs, equip, results_ids=set(rows_by_id))
+        item = inventory.make_manual_item(clean, manu, part, specs, equip, cat, results_ids=set(rows_by_id))
         run_manual_check(item, real, est)
     manual_result_panel(items, rows, rows_by_id)
     with st.expander("Or only add it to the queue, without running"):
         if st.button("Add to queue (no cost)", key="m_queue", disabled=not allow):
-            row = inventory.add_manual_item(clean, manu, part, specs, equip, results_ids=set(rows_by_id))
+            row = inventory.add_manual_item(clean, manu, part, specs, equip, cat, results_ids=set(rows_by_id))
             st.success(f"Added {row['Item_ID']} to data/manual_items.csv. Run it from the Run screen. Nothing has run yet.")
 
 

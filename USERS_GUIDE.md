@@ -41,11 +41,11 @@ A product from a different maker with the same technical parameters counts as va
 
 ## 4a. Checking a new item you type in
 
-1. Open **Check a new item** and type the item or piece of equipment, for example `circuit breaker, 3 pole, 160 A, 36 kA`. Maker, part number and key specs are optional and make the search faster and cheaper. Do not type prices, stock levels, site names, asset codes or project names.
+1. Open **Check a new item** and type the item or piece of equipment, for example `circuit breaker, 3 pole, 160 A, 36 kA`. Maker, part number, key specs, the equipment it serves and a category are optional (under "Add details") and make the search faster and cheaper. The category list holds the categories already in the inventory; leave it on "Unspecified" and the app works it out. Do not type prices, stock levels, site names, asset codes or project names.
 2. Turn on **Use real models (spends API credits)** in the sidebar. If it is off, the screen offers only a free mock run that makes no search and gives a placeholder.
-3. **Before you run**, the screen shows the estimated cost and time (typically about $0.14 and about a minute, range $0.09 to $0.20 and 50 to 80 seconds). The button shows the same figures. Nothing is spent until you press it.
+3. **Before you run**, the screen shows the estimated cost and time (typically about $0.14 and about a minute, range $0.09 to $0.20 and 50 to 80 seconds; an entry with no maker or part number can cost more, for example $0.26 and almost two minutes). The button shows the same figures. Nothing is spent until you press it.
 4. **While it runs**, a progress bar and a log say what is happening and how many seconds have passed: identifying the item, searching the web for makers and analogues, opening each datasheet, extracting analogues and their specifications, choosing the relevant Dubai rules, checking them against the technical parameters, and the independent verification.
-5. **The result** shows the verdict with its reasons, actual time and cost against the estimate, the makers and analogues found (a product from any maker with the same technical parameters counts), the rules cited, the open points and the full report.
+5. **The result** shows the verdict with its reasons, the open points (when documents are missing, one line per document to obtain), actual time and cost against the estimate, the makers and analogues found (a product from any maker with the same technical parameters counts), the rules cited, the open points and the full report.
 6. **Then the screen suggests updating the databases.** Nothing is written until you choose: **Save entry and result** (adds the entry to `data/manual_items.csv` and the result to the results, with your decision still pending), **Save the entry only** (run it later), or **Discard** (nothing is written and the saved documents are removed). Your sidebar name is logged. Safety-critical items always wait for a person.
 
 ## 5. Reviewing an item
@@ -92,7 +92,7 @@ Mock mode and reading results cost nothing. A real-mode check is about $0.09 to 
 
 ## 10. Privacy and publishing
 
-Keys are in `.env` and are never shown or exported. Your personal name stays on your computer. To publish the project, run `python -m src.export_clean C:\path\to\new-folder`. It removes personal reviewer names, leaves out keys, caches, downloads, backups and large files, then checks its own output. The 145 MB Fire Code PDF is too large for GitHub (limit 100 MB).
+Keys are in `.env` and are never shown or exported. Your personal name stays on your computer. To publish the project, run `python -m src.export_clean C:\path\to\new-folder`. To refresh a folder that is already a git repository (for example the copy on GitHub), add `--update` to the command: it keeps `.git` and needs no new folder. It removes personal reviewer names, leaves out keys, caches, downloads, backups and large files, then checks its own output. The 145 MB Fire Code PDF is too large for GitHub (limit 100 MB).
 
 **Getting the rulebook PDFs after downloading the repository.** The repository does not contain the rulebook PDFs, only the list of them in `rules/INDEX.md` (with the web address of each) and `rules/CHECKSUMS.json`. After you download it, set up the Python environment as in the README, then run:
 

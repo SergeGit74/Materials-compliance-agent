@@ -91,7 +91,7 @@ Other documents: `CLAUDE.md` (short working rules for Claude Code in this folder
 │   ├── batch.py, appcore.py                                    batch mode and app helpers
 │   ├── evaluate.py                                             evaluation after processing
 │   └── settings.py, export_clean.py, fetch_rules.py                           reviewer name; clean export for GitHub
-├── tests/                         pytest suite (179 tests; no test makes a network call)
+├── tests/                         pytest suite (185 tests; no test makes a network call)
 └── dashboard/dashboard.html       static dashboard, view only (open in a browser)
 ```
 
@@ -425,7 +425,7 @@ This is a prototype for learning and evaluation. It is not legal advice and does
 
 ---
 
-## 10. What has been built and where things stand (2026-11-02)
+## 10. What has been built and where things stand (2026-11-03)
 
 **Results.** 50 items processed; every `human_decision` is `pending` (nothing has been approved or rejected). Main result mix: 5 ALLOWED, 39 NEEDS_DOCUMENTS, 5 UNKNOWN, 1 NOT_ALLOWED; false ALLOWED 0; safety-critical items not pending 0; UNKNOWN rate 10%.
 Real-mode trials exist for all 50 items (`results/real_runs.csv`); about 9 results from them were adopted into the main results (INV-0003, 0006, 0012, 0020, 0025, 0027, 0035, 0039, 0049), logged in `results/decisions.csv`.
@@ -444,7 +444,7 @@ Real-mode trials exist for all 50 items (`results/real_runs.csv`); about 9 resul
 | `python -m src.export_clean OUT_DIR` | clean copy for GitHub (names scrubbed, secrets and big files left out) | no |
 | `python -m src.fetch_rules [--dry-run] [--only TEXT]` | download the rulebook PDFs listed in `rules/INDEX.md` (free, needs internet) | no |
 | `python -m src.fetch_rules --write-checksums` | record sha256 of the PDFs in `rules/` before an export (offline) | no |
-| `python -m pytest -q` | 179 tests, no network | no |
+| `python -m pytest -q` | 185 tests, no network | no |
 | `python -m src.docsearch intake [--dry-run] [--id N06]` | add found rulebooks to `rules/` and `INDEX.md` as PENDING (no network) | no |
 
 **Decisions the project owner made in chat (all in force).**
@@ -472,14 +472,25 @@ Real-mode trials exist for all 50 items (`results/real_runs.csv`); about 9 resul
 
 **Check a new item.** The Check a new item screen runs one typed entry through the full pipeline with an estimate first, live stage messages and a suggestion to save it to the input and output databases (section 7.6).
 
+**Changes of 2026-11-03.**
+- **Retrieval:** Haiku reranks the merged pool of candidate clauses (see the clause reranking note); Voyage is off by default and the user decided to skip it. Trials of 11 items with reranking changed no verdict.
+- **Rulebooks:** the DM Technical Guidelines for Confined Spaces Entry (DM-HSD-GU39-CSE2, V2.1, issued 22/12/2019) was added and confirmed by Project owner on the user's instruction; it is only 5 pages and applied to none of the 5 UNKNOWN items. `python -m src.fetch_rules` re-downloads the PDFs listed in `rules/INDEX.md` and checks them against `rules/CHECKSUMS.json`.
+- **Repository:** a clean export was committed (two commits, including the `LICENSE`: free for non-commercial use, author must be named, no warranty or liability) and pushed to https://github.com/SergeGit74/Materials-compliance-agent . Rulebook PDFs are not in it.
+- **Check a new item:** tested in the live app with a mobile aluminium scaffold tower, saved as NEW-0001 (Construction Safety Manual section 08 Scaffolding cited; NEEDS_DOCUMENTS 0.65; pending as work at height) and its real-mode result adopted on the user's instruction. Fixes made after that test: the screen printed a Python expression and object text instead of the Rules cited table (a bare `st.x() if c else st.y()` statement, Streamlit's magic displays its value; also fixed in the Review report tab; a test now fails if one comes back); a **Category** dropdown was added to the optional details (it was always saved as `Unspecified`); when a result is NEEDS_DOCUMENTS the open questions now list each document the notes name as `Obtain: ...` (read from phrases such as `Documents needed:`, `Needed from the maker:`, `Also needed:`, `Site-side documents:`; a general line is used when none is found). NEW-0001's open questions were edited by hand to match; its entry in `data/manual_items.csv` still says `Unspecified`.
+- **Incident and guard (2026-11-03):** the Run screen's "Run this item (reruns and replaces that item's row)" box, used with the real-models switch off, replaced the main result of INV-0001 (ALLOWED 0.60) with a mock placeholder (UNKNOWN 0.28). It was restored from the first commit of the clean repository (backup of the damaged files kept in the session scratchpad); no decision was logged on it. A mock run can no longer replace an existing result, in the app (button disabled with a warning) or on the command line (`python -m src.run`); it still adds results for items without one.
+- **Updating GitHub:** `python -m src.export_clean <existing repo folder> --update` builds the clean copy in a temporary folder, verifies it, and only then brings the repository folder up to date in place (new and changed files copied, files no longer exported deleted, `.git` untouched). Then `git status`, commit and push. No new folder is needed.
+- **Cost and time estimates can be exceeded:** the Check a new item estimate (about $0.14, 46 s) comes from the 50 recorded trials. An entry without a maker or part number cost $0.255 and 103 s on one run and $0.180 and 61 s on the next.
+- 185 tests pass.
+
 **Open items for people.**
 - Confirm each rulebook edition and put a named reviewer in `rules/INDEX.md` (`Confirmed by`).
 - Decide each item: nothing is approved or rejected yet. Safety-critical items (fire, lifts, cladding, work at height, gas detection) are for a person only.
 - Check the flagged points on the adopted ALLOWED results (INV-0006 Legrand 30 mA Type A; INV-0012 meaning of "zero ODP or GWP below 100"; INV-0003 cable size and voltage drop; INV-0048 fault level) and INV-0020 (19 mm hose reel against the 25 mm requirement).
 - Supply the missing documents listed in each report (exact model, datasheet, Civil Defence listing, DEWA approval).
 - Obtain an English structural codes edition, a cleaner seismic PDF, the Dubai Municipality technical guidelines no. 1, 5 and 6, and DEWA's meter specification.
-- Add a payment method on the Voyage account if re-ranking is wanted.
-- The working project is not a git repository; the clean export folder is one (initialised 2026-11-03, no commit yet). Use `src/export_clean.py` before publishing; the Fire Code PDF (145 MB) needs Git LFS or must stay out.
+- Voyage is not needed: Haiku reranking is on and Voyage is skipped (user decision, 2026-11-03).
+- The working project is not a git repository; the clean export folder is one and is pushed to GitHub (see above). Update it in place with `python -m src.export_clean <repo folder> --update` (run `python -m src.fetch_rules --write-checksums` first) before publishing changes; the Fire Code PDF (145 MB) stays out of it. The commit author is the user's global git identity, left as it is by their choice.
+- Test the download on a fresh clone (`python -m src.fetch_rules`); only a mock server has been used so far, and the Fire Code URL on dcd.gov.ae is the most likely to fail.
 
 ## License
 Free for non-commercial use; the author must be named wherever the project or a work derived from it is published or presented. The author accepts no responsibility for the consequences of using it. The rulebooks it cites belong to their publishers and are not covered. Full text in `LICENSE`.

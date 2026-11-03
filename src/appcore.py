@@ -77,3 +77,13 @@ def models_summary() -> dict:
         "verify": os.getenv("MODEL_VERIFY", "(not set)"),
         "search": "Serper" if serper else "Anthropic web search tool",
     }
+
+
+MOCK_OVERWRITE_MESSAGE = ("A mock run would replace this item's existing result with a placeholder (no search, no rules). "
+                          "Turn on the sidebar switch \"Use real models\" to rerun it, or pick an item without a result.")
+
+
+def mock_would_overwrite(models, redo: bool) -> bool:
+    """True when a rerun that REPLACES an existing result is about to use the mock models; a mock result is only a placeholder."""
+    from .models import MockModels
+    return bool(redo) and isinstance(models, MockModels)

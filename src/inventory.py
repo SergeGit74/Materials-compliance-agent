@@ -105,13 +105,13 @@ def _next_manual_id(manual_path: Path, results_ids: set[str]) -> str:
 
 
 def make_manual_item(name: str, manufacturer: str = "", part_number: str = "", key_specs: str = "",
-                     equipment: str = "", manual_path: Path = config.MANUAL_ITEMS_CSV,
+                     equipment: str = "", category: str = "", manual_path: Path = config.MANUAL_ITEMS_CSV,
                      results_ids: set[str] = frozenset()) -> dict:
     """Build a business-user item with its next NEW- id WITHOUT writing it (the id is only reserved by save_manual_item)."""
     row = dict.fromkeys(config.INVENTORY_COLUMNS, "")
     row.update(
         Item_ID=_next_manual_id(manual_path, set(results_ids)),
-        Category="Unspecified",
+        Category=sanitize(category, DETAIL_MAX) or "Unspecified",
         Internal_Description=validate_name(name),
         Part_Number=sanitize(part_number, DETAIL_MAX),
         Manufacturer_Listed=sanitize(manufacturer, DETAIL_MAX),
@@ -137,10 +137,10 @@ def save_manual_item(row: dict, manual_path: Path = config.MANUAL_ITEMS_CSV, res
 
 
 def add_manual_item(name: str, manufacturer: str = "", part_number: str = "", key_specs: str = "",
-                    equipment: str = "", manual_path: Path = config.MANUAL_ITEMS_CSV,
+                    equipment: str = "", category: str = "", manual_path: Path = config.MANUAL_ITEMS_CSV,
                     results_ids: set[str] = frozenset()) -> dict:
     """Append one business-user item to manual_items.csv. Only these fields are stored."""
-    row = make_manual_item(name, manufacturer, part_number, key_specs, equipment, manual_path, results_ids)
+    row = make_manual_item(name, manufacturer, part_number, key_specs, equipment, category, manual_path=manual_path, results_ids=results_ids)
     return save_manual_item(row, manual_path, results_ids)
 
 

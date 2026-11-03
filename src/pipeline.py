@@ -1,4 +1,5 @@
 """Per-item pipeline (README section 3). Deterministic steps in code, model steps via `Models`."""
+import re
 import os
 from datetime import datetime, timezone
 from pathlib import Path
@@ -56,6 +57,19 @@ def valid_rule_refs(refs: list[str], available: list[str]) -> list[str]:
 
 
 VERDICT_CAP = {"ALLOWED": 0.75, "NOT_ALLOWED": 0.75, "NEEDS_DOCUMENTS": 0.65, "UNKNOWN": 0.40}  # ALLOWED/NOT_ALLOWED stay below 0.8: site fault levels, approvals and exact stock models are never fully known
+
+
+DOC_LEADS = r"(?:Missing documents?|Documents? (?:needed|that would settle it)|Needed from [^:.]{1,40}|Also needed|Site-side documents)"
+
+
+def documents_needed(text: str) -> list[str]:
+    """The documents a NEEDS_DOCUMENTS note names: every sentence led by a phrase such as "Documents needed:", "Needed from the maker:" or "Also needed:",
+    split into one entry per numbered "(1) ... (2) ..." part when it has them."""
+    out = []
+    for m in re.finditer(DOC_LEADS + r"\s*:\s*(.+?)(?:(?<=[a-z\)])\.\s+(?=[A-Z])|\.?$)", text or "", re.S | re.I):
+        parts = [p.strip(" ;,.") for p in re.split(r"\(\d+\)", m.group(1))]
+        out += [p for p in parts if p]
+    return out
 
 
 def confidence_breakdown(norm_conf: float, verdict: str, fit_status: str, n_candidates: int, verifier_rejected: bool) -> tuple[float, str]:
@@ -208,6 +222,9 @@ def run_item(item: dict, models: Models, budget: Budget | None = None, progress=
                 notes.append(why)
             if comp.notes:
                 notes.append(comp.notes)
+            if verdict == "NEEDS_DOCUMENTS":
+                named = [f"Obtain: {d}" for d in documents_needed(comp.notes)]
+                open_questions += named or ["Obtain the documents named in the notes, then run the check again."]
     except BudgetExceeded:
         verdict = "UNKNOWN"
         notes.append("budget exceeded")

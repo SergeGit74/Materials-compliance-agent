@@ -29,7 +29,7 @@ A prototype that checks inventory items (construction and real estate materials 
 - `results/results.csv` main result; `results/items/*.md` reports; `results/real_runs.csv` trials; `results/decisions.csv` audit log.
 
 ## How to work here
-- Windows. Use `.venv/Scripts/python`. Set `PYTHONIOENCODING=utf-8` for consoles. Run `python -m pytest -q` (156 tests, no network) after every code change; add a test for every new behaviour. Tests must not call real APIs.
+- Windows. Use `.venv/Scripts/python`. Set `PYTHONIOENCODING=utf-8` for consoles. Run `python -m pytest -q` (185 tests, no network) after every code change; add a test for every new behaviour. Tests must not call real APIs.
 - Prefer small scripts written with the Write tool over long shell heredocs (quoting breaks on Windows). Put scratch files in the scratchpad directory, not in the project.
 - Back up `results/results.csv` and the item's report before replacing a row. Replace only that item's row (`store.replace_row`). Keep earlier report text and add a dated section.
 - Real calls cost money: say the estimate first (about $0.14 per item, $0.30 to $1.50 per group), get a yes, run one batch at a time (two runs writing together can overwrite `real_runs.csv`), then report results in a table with the comparison to the main result.
@@ -43,10 +43,16 @@ Only files with a confirmed row in `rules/INDEX.md` are indexed (`rules_index.ci
 Clauses are reranked by one Haiku call (`RealModels._rerank`); Voyage is opt-in via `USE_VOYAGE_RERANK=1`; the user decided to keep Haiku reranking and skip Voyage (no payment method needed). Any real-mode rerun costs money: ask first.
 
 ## Manual entries
-The Check a new item screen runs a typed entry through `pipeline.run_item` like any CSV item. It shows an estimate first (`appcore.manual_estimate`), live stage messages (`RealModels.say`) and a save suggestion; it writes nothing until a named person chooses (`data/manual_items.csv` is the only file in `data/` the app may write). Keep it that way: no automatic saves, no real calls without the sidebar switch.
+The Check a new item screen runs a typed entry through `pipeline.run_item` like any CSV item. It shows an estimate first (`appcore.manual_estimate`), live stage messages (`RealModels.say`) and a save suggestion; it writes nothing until a named person chooses (`data/manual_items.csv` is the only file in `data/` the app may write). Keep it that way: no automatic saves, no real calls without the sidebar switch. The optional Category dropdown is saved with the entry. When a result is NEEDS_DOCUMENTS the open questions list the documents the notes name (`pipeline.documents_needed`). Never write a bare `st.x(...) if c else st.y(...)` statement in `app.py`: Streamlit shows its value on screen (a test checks this).
 
 ## Fetching rulebooks
 `python -m src.fetch_rules` re-downloads PDFs listed in `rules/INDEX.md` (https, issuer hosts only, checksum-checked against `rules/CHECKSUMS.json`; a changed edition is held in staging). Run `--write-checksums` before every export so the file is current.
+
+## GitHub
+The clean export is pushed to https://github.com/SergeGit74/Materials-compliance-agent (remote `origin` of the export folder, not of this project). The licence names Serguei Preobrajenski as copyright holder; keep that name out of reviewer data. Push again only when asked. Update the export folder in place with `python -m src.export_clean <repo folder> --update` (no new folder), review `git status`, then commit and push.
+
+## Mock runs
+A mock run must never replace an existing result (`appcore.mock_would_overwrite`; it overwrote INV-0001 once). Check any new code path that calls `store.replace_row`.
 
 ## When asked to export
 Run `python -m src.export_clean OUT_DIR` into a new folder outside the project, read its report (names removed, files left out, verification) and tell the user. The 145 MB Fire Code PDF exceeds GitHub's 100 MB limit.

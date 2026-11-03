@@ -1,9 +1,12 @@
 """Export a clean copy of the project for GitHub: no secrets, no personal names, no files GitHub would reject.
 
-    python -m src.export_clean OUT_DIR [--also "Another Name"] [--include-rules] [--include-evidence]
+    python -m src.export_clean OUT_DIR [--also "Another Name"] [--include-rules] [--include-evidence] [--update]
 
 What it does
-- copies the project into OUT_DIR (a new folder; it refuses to write into a non-empty one);
+- copies the project into OUT_DIR (a new folder; it refuses to write into a non-empty one unless --update is given);
+- with --update, OUT_DIR must be an existing git repository (it has a .git folder). The clean copy is built in a temporary folder and verified first;
+  only if it passes, the repository folder is brought up to date: new and changed files are copied, files that are no longer in the export are deleted,
+  and .git is never touched. Review the result with `git status`, then commit and push yourself or ask Claude to;
 - never copies .env, .venv, caches, uploads, staged downloads, reviewer.local.json or any .git folder;
 - replaces every reviewer name with "[reviewer]" in text files (csv, md, json, txt, py, html). The names come from the reviewer column of
   results/decisions.csv, the saved reviewer name and --also. Labels such as "Project owner (instruction in chat, ...)" are not personal names and stay;
@@ -16,9 +19,11 @@ from __future__ import annotations
 
 import argparse
 import csv
+import filecmp
 import re
 import shutil
 import sys
+import tempfile
 from pathlib import Path
 
 from . import config, settings
@@ -91,6 +96,35 @@ def export(src: Path, out: Path, names: list[str], include_rules: bool = False, 
     return report
 
 
+def sync(built: Path, repo: Path) -> dict:
+    """Bring the git repository folder `repo` up to date with the verified export `built`. .git is never touched."""
+    built, repo = Path(built), Path(repo)
+    if not (repo / ".git").exists():
+        raise ValueError(f"{repo} is not a git repository (no .git folder). Use a new folder without --update.")
+    rep = {"added": [], "changed": [], "removed": []}
+    new = {p.relative_to(built).as_posix() for p in built.rglob("*") if p.is_file()}
+    for rel in sorted(new):
+        src, dest = built / rel, repo / rel
+        if not dest.exists():
+            rep["added"].append(rel)
+        elif not filecmp.cmp(src, dest, shallow=False):
+            rep["changed"].append(rel)
+        else:
+            continue
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src, dest)
+    for p in sorted(repo.rglob("*")):
+        rel = p.relative_to(repo)
+        if p.is_dir() or rel.parts[0] == ".git" or rel.as_posix() in new:
+            continue
+        p.unlink()
+        rep["removed"].append(rel.as_posix())
+    for d in sorted((p for p in repo.rglob("*") if p.is_dir() and p.relative_to(repo).parts[0] != ".git"), reverse=True):
+        if not any(d.iterdir()):
+            d.rmdir()
+    return rep
+
+
 def verify(out: Path, names: list[str]) -> list[str]:
     """Problems left in the output: a name, a Windows home path, a key-like string or a .env file."""
     problems = []
@@ -117,11 +151,19 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--also", action="append", default=[], help="another name to scrub (repeatable)")
     ap.add_argument("--include-rules", action="store_true", help="copy the rulebook PDFs (files over 95 MB are still left out)")
     ap.add_argument("--include-evidence", action="store_true", help="copy the saved evidence PDFs")
+    ap.add_argument("--update", action="store_true", help="OUT is an existing git repository: update it in place (.git is kept; removed files are deleted)")
     args = ap.parse_args(argv)
     names = reviewer_names(config.RESULTS_DIR / "decisions.csv", args.also, settings.get_reviewer())
     print(f"Names to remove: {len(names)}" + ("" if names else " (none found: pass --also if a name appears in notes)"))
+    target = args.out
+    tmp = None
     try:
-        rep = export(config.ROOT, args.out, names, args.include_rules, args.include_evidence)
+        if args.update:
+            if not (args.out / ".git").exists():
+                raise ValueError(f"{args.out} is not a git repository (no .git folder). Use a new folder without --update.")
+            tmp = Path(tempfile.mkdtemp(prefix="export_clean_"))
+            target = tmp / "export"
+        rep = export(config.ROOT, target, names, args.include_rules, args.include_evidence)
     except ValueError as e:
         print(e, file=sys.stderr)
         return 2
@@ -130,9 +172,19 @@ def main(argv: list[str] | None = None) -> int:
         print(f"  scrubbed {n:3d} in {f}")
     for f in rep["skipped_large"]:
         print(f"  LEFT OUT (over 95 MB, GitHub would reject it): {f}")
-    problems = verify(args.out, names)
+    problems = verify(target, names)
     for pr in problems:
         print("  PROBLEM:", pr, file=sys.stderr)
+    if tmp is not None:
+        if not problems:
+            sr = sync(target, args.out)
+            print(f"Updated {args.out} in place: {len(sr['added'])} added, {len(sr['changed'])} changed, {len(sr['removed'])} removed. .git untouched. Run `git status` there.")
+            for k in ("added", "changed", "removed"):
+                for f in sr[k]:
+                    print(f"  {k:8} {f}")
+        else:
+            print("Nothing in the repository folder was changed.", file=sys.stderr)
+        shutil.rmtree(tmp, ignore_errors=True)
     print("Verification: " + ("FAILED" if problems else "no names, keys or home paths found in the output."))
     return 1 if problems else 0
 
