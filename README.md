@@ -490,7 +490,7 @@ Real-mode trials exist for all 50 items (`results/real_runs.csv`); about 9 resul
 - Obtain an English structural codes edition, a cleaner seismic PDF, the Dubai Municipality technical guidelines no. 1, 5 and 6, and DEWA's meter specification.
 - Voyage is not needed: Haiku reranking is on and Voyage is skipped (user decision, 2026-11-03).
 - The working project is not a git repository; the clean export folder is one and is pushed to GitHub (see above). Update it in place with `python -m src.export_clean <repo folder> --update` (run `python -m src.fetch_rules --write-checksums` first) before publishing changes; the Fire Code PDF (145 MB) stays out of it. The commit author is the user's global git identity, left as it is by their choice.
-- Test the download on a fresh clone (`python -m src.fetch_rules`); only a mock server has been used so far, and the Fire Code URL on dcd.gov.ae is the most likely to fail.
+- `python -m src.fetch_rules` was tested on a fresh clone of the GitHub repository on 2026-11-03: all 11 PDFs downloaded (including the 145 MB Fire Code from dcd.gov.ae) and every sha256 matched `rules/CHECKSUMS.json`; a second run installed nothing. Not tested: building the clause index and running the app from that clone, and a clone on another machine. If a publisher moves or replaces a file, the tool reports it (failed, or held in staging if the checksum differs).
 
 ## License
 Free for non-commercial use; the author must be named wherever the project or a work derived from it is published or presented. The author accepts no responsibility for the consequences of using it. The rulebooks it cites belong to their publishers and are not covered. Full text in `LICENSE`.
