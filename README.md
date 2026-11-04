@@ -91,7 +91,7 @@ Other documents: `CLAUDE.md` (short working rules for Claude Code in this folder
 │   ├── batch.py, appcore.py                                    batch mode and app helpers
 │   ├── evaluate.py                                             evaluation after processing
 │   └── settings.py, export_clean.py, fetch_rules.py                           reviewer name; clean export for GitHub
-├── tests/                         pytest suite (207 tests; no test makes a network call)
+├── tests/                         pytest suite (208 tests; no test makes a network call)
 └── dashboard/dashboard.html       static dashboard, view only (open in a browser)
 ```
 
@@ -444,7 +444,7 @@ Real-mode trials exist for all 50 items (`results/real_runs.csv`); about 9 resul
 | `python -m src.export_clean OUT_DIR` | clean copy for GitHub (names scrubbed, secrets and big files left out) | no |
 | `python -m src.fetch_rules [--dry-run] [--only TEXT]` | download the rulebook PDFs listed in `rules/INDEX.md` (free, needs internet) | no |
 | `python -m src.fetch_rules --write-checksums` | record sha256 of the PDFs in `rules/` before an export (offline) | no |
-| `python -m pytest -q` | 207 tests, no network | no |
+| `python -m pytest -q` | 208 tests, no network | no |
 | `python -m src.docsearch intake [--dry-run] [--id N06]` | add found rulebooks to `rules/` and `INDEX.md` as PENDING (no network) | no |
 
 **Decisions the project owner made in chat (all in force).**
@@ -480,7 +480,7 @@ Real-mode trials exist for all 50 items (`results/real_runs.csv`); about 9 resul
 - **Incident and guard (2026-11-03):** the Run screen's "Run this item (reruns and replaces that item's row)" box, used with the real-models switch off, replaced the main result of INV-0001 (ALLOWED 0.60) with a mock placeholder (UNKNOWN 0.28). It was restored from the first commit of the clean repository (backup of the damaged files kept in the session scratchpad); no decision was logged on it. A mock run can no longer replace an existing result, in the app (button disabled with a warning) or on the command line (`python -m src.run`); it still adds results for items without one.
 - **Updating GitHub:** `python -m src.export_clean <existing repo folder> --update` builds the clean copy in a temporary folder, verifies it, and only then brings the repository folder up to date in place (new and changed files copied, files no longer exported deleted, `.git` untouched). Then `git status`, commit and push. No new folder is needed.
 - **Cost and time estimates can be exceeded:** the Check a new item estimate (about $0.14, 46 s) comes from the 50 recorded trials. An entry without a maker or part number cost $0.255 and 103 s on one run and $0.180 and 61 s on the next.
-- 207 tests pass.
+- 208 tests pass.
 
 **Open items for people.**
 - Confirm each rulebook edition and put a named reviewer in `rules/INDEX.md` (`Confirmed by`).
@@ -491,6 +491,17 @@ Real-mode trials exist for all 50 items (`results/real_runs.csv`); about 9 resul
 - Voyage is not needed: Haiku reranking is on and Voyage is skipped (user decision, 2026-11-03).
 - The working project is not a git repository; the clean export folder is one and is pushed to GitHub (see above). Update it in place with `python -m src.export_clean <repo folder> --update` (run `python -m src.fetch_rules --write-checksums` first) before publishing changes; the Fire Code PDF (145 MB) stays out of it. The commit author is the user's global git identity, left as it is by their choice.
 - `python -m src.fetch_rules` was tested on a fresh clone of the GitHub repository on 2026-11-03: all 11 PDFs downloaded (including the 145 MB Fire Code from dcd.gov.ae) and every sha256 matched `rules/CHECKSUMS.json`; a second run installed nothing. Not tested: building the clause index and running the app from that clone, and a clone on another machine. If a publisher moves or replaces a file, the tool reports it (failed, or held in staging if the checksum differs).
+
+## Using the real models on your own computer
+
+The hosted demo can run the real models only for visitors with the passcode, and it cannot fetch every rulebook (see the limits below). For a full check, run the project locally with your own keys.
+
+1. **Install.** Python 3.11, then `git clone https://github.com/SergeGit74/Materials-compliance-agent`, `cd` into it, `python -m venv .venv`, activate it, and `pip install -r requirements.txt`. For the rulebook index you also need `pdftotext` (poppler): on Windows install poppler and put it on PATH; on Linux `apt install poppler-utils`.
+2. **Settings.** Copy `.env.example` to `.env` and fill it yourself: `ANTHROPIC_API_KEY`, the three `MODEL_*` names, `VOYAGE_API_KEY` and `VOYAGE_EMBED_MODEL` (the startup check still asks for them, though Voyage is not used for reranking), `MAX_STEPS_PER_ITEM`, `MAX_TOKENS_PER_ITEM`, and optionally `SERPER_API_KEY` (without it the Anthropic web search tool is used). Keep `RULES_LANGUAGE=en` and `RULES_JURISDICTION=dubai`. Never commit `.env` and never paste a key into a chat or an issue. In the Anthropic console, set a monthly spending limit first.
+3. **Rulebooks.** `python -m src.fetch_rules` downloads the 11 PDFs listed in `rules/INDEX.md` from their publishers and checks them against `rules/CHECKSUMS.json` (it works from a home or office connection; some publishers refuse cloud servers). The structural codes PDF is unreadable and stays out of the index.
+4. **Start.** `streamlit run app.py`. The first start builds the clause index (about 2 minutes). Mock models are the default and cost nothing.
+5. **Turn on the real models.** Tick **Use real models (spends API credits)** in the sidebar. Check the estimate shown before each run (about $0.14 and 1 minute per item on average, more for a hard item) and the spend cap for batches. On the command line: `python -m src.run --item INV-0001 --real` (it asks you to type `spend`).
+6. **Your own items.** The **Check a new item** screen runs any equipment or material through the same steps. Nothing is saved until you choose to. A verdict is never a complete compliance answer: a named person reviews every result.
 
 ## Deploying to Streamlit Community Cloud
 
@@ -506,6 +517,7 @@ What demo mode does: a banner says the data are synthetic and saved decisions ar
 
 Limits to know about:
 - **The disk is temporary.** Decisions, saved manual items, adoptions and the daily counter are lost when the app restarts or is redeployed, so the daily cap also resets then.
+- **Some publishers refuse cloud servers.** On the first Streamlit Cloud deploy, DEWA (two files) and the Dubai green building regulations answered HTTP 403, and the Fire Code and the Construction Safety Code timed out, although the same downloads work from a home PC. The app starts anyway and lists them. The stored results still show their citations, but a new real-mode check on the hosted copy cannot cite those five rulebooks. For a full check, clone the repository and run it locally (`python -m src.fetch_rules`, your own keys in `.env`, `streamlit run app.py`).
 - **The app sleeps when idle** and wakes on the next visit, with a new cold start.
 - **Memory is limited** (about 1 GB on the free tier). Keep one visitor-driven batch small.
 - **Any visitor can use the other buttons** (approve or reject, adopt a stored real-mode result, confirm a pending rulebook, upload an inventory). Their effect disappears with the temporary disk, but do not publish the link as a place for real decisions.

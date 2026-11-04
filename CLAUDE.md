@@ -29,7 +29,7 @@ A prototype that checks inventory items (construction and real estate materials 
 - `results/results.csv` main result; `results/items/*.md` reports; `results/real_runs.csv` trials; `results/decisions.csv` audit log.
 
 ## How to work here
-- Windows. Use `.venv/Scripts/python`. Set `PYTHONIOENCODING=utf-8` for consoles. Run `python -m pytest -q` (207 tests, no network) after every code change; add a test for every new behaviour. Tests must not call real APIs.
+- Windows. Use `.venv/Scripts/python`. Set `PYTHONIOENCODING=utf-8` for consoles. Run `python -m pytest -q` (208 tests, no network) after every code change; add a test for every new behaviour. Tests must not call real APIs.
 - Prefer small scripts written with the Write tool over long shell heredocs (quoting breaks on Windows). Put scratch files in the scratchpad directory, not in the project.
 - Back up `results/results.csv` and the item's report before replacing a row. Replace only that item's row (`store.replace_row`). Keep earlier report text and add a dated section.
 - Real calls cost money: say the estimate first (about $0.14 per item, $0.30 to $1.50 per group), get a yes, run one batch at a time (two runs writing together can overwrite `real_runs.csv`), then report results in a table with the comparison to the main result.

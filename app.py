@@ -951,11 +951,11 @@ def bootstrap_rules() -> dict:
 
 
 def show_bootstrap_notice(info: dict) -> None:
-    lines = [f"{p['file']}: {p['status']}" + (f" ({p['note']})" if p["note"] else "") for p in info["problems"]]
-    lines += [f"{f}: {why}" for f, why in info.get("skipped", {}).items()]
+    lines = fetch_rules.notice_lines(info)
     if lines:
-        st.warning("Some rulebooks are not available, so rules in them cannot be cited until they are added (python -m src.fetch_rules):\n\n"
-                   + "\n".join(f"- {x}" for x in lines))
+        st.warning("These rulebooks are not available on this host (some publishers refuse downloads from cloud servers), so new real-mode checks cannot "
+                   "cite them. Results already stored for the items still show their citations. For a full check, run the project on your own computer "
+                   "(README, python -m src.fetch_rules):\n\n" + "\n".join(f"- {x}" for x in lines))
     elif info["ran"]:
         st.caption(f"First start: {info['installed']} rulebook file(s) downloaded from their publishers.")
 

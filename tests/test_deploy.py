@@ -207,6 +207,16 @@ def test_a_pending_only_rulebook_does_not_count_and_a_failure_never_stops_the_ap
     assert fetch_rules.ensure_rules(tmp_path / "no-such-folder", progress=None)["installed"] == 0  # a missing rules folder does not raise either
 
 
+def test_notice_lists_each_unavailable_rulebook_once_with_the_download_reason():
+    info = {"problems": [{"file": "a.pdf", "status": "failed", "note": "HTTP 403"}, {"file": "b.pdf", "status": "failed", "note": "network error: ConnectTimeout"}],
+            "skipped": {"a.pdf": "missing: listed in INDEX.md but not in rules/ (run python -m src.fetch_rules)",
+                        "c.pdf": "missing: listed in INDEX.md but not in rules/ (run python -m src.fetch_rules)",
+                        "d.pdf": "skipped: text layer is not readable English"}}
+    assert fetch_rules.notice_lines(info) == ["a.pdf: failed: HTTP 403", "b.pdf: failed: network error: ConnectTimeout", "c.pdf: not downloaded",
+                                              "d.pdf: skipped: text layer is not readable English"]
+    assert fetch_rules.notice_lines({"problems": [], "ran": False}) == []
+
+
 # ---------- the app in demo mode (mock models only) ----------
 
 needs_env = pytest.mark.skipif(bool(config.missing_env()), reason=".env is not set up on this machine")

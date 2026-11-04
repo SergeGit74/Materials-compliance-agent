@@ -177,6 +177,17 @@ def ensure_rules(rules_dir: Path = config.RULES_DIR, *, http: httpx.Client | Non
     return out
 
 
+def notice_lines(info: dict) -> list[str]:
+    """One line per rulebook that is not available, for the page notice: the download failure (with its reason) wins over the index's
+    "missing" status for the same file, so no file is listed twice."""
+    by_file = {p["file"]: (f"{p['status']}: {p['note']}" if p["note"] else p["status"]) for p in info.get("problems", [])}
+    for f, why in info.get("skipped", {}).items():
+        if f in by_file:
+            continue
+        by_file[f] = "not downloaded" if why.startswith("missing") else why
+    return [f"{f}: {why}" for f, why in by_file.items()]
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="Download the rulebook PDFs listed in rules/INDEX.md that are missing from rules/.")
     ap.add_argument("--dry-run", action="store_true", help="list what would be downloaded; no network")
