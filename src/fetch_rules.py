@@ -19,6 +19,7 @@ import argparse
 import hashlib
 import json
 import sys
+import time
 from pathlib import Path
 
 import httpx
@@ -26,6 +27,7 @@ import httpx
 from . import config, intake
 
 MAX_BYTES = 200 * (1 << 20)
+MAX_SECONDS = 300  # per file: a slow publisher server must not hold the app start for ever
 CHECKSUMS = "CHECKSUMS.json"
 
 
@@ -54,13 +56,14 @@ def write_checksums(rules_dir: Path = config.RULES_DIR) -> dict:
     return sums
 
 
-def _fetch(url: str, http: httpx.Client, max_bytes: int) -> tuple[bytes | None, str]:
+def _fetch(url: str, http: httpx.Client, max_bytes: int, max_seconds: float = MAX_SECONDS) -> tuple[bytes | None, str]:
     """The file's bytes, or None and the reason."""
     if not url.lower().startswith("https://"):
         return None, "only https URLs are fetched"
     if not intake.issuer_of(url):
         return None, "the host is not a known Dubai or UAE issuer; download this file by hand"
     data = bytearray()
+    deadline = time.monotonic() + max_seconds
     try:
         with http.stream("GET", url) as r:
             if r.status_code != 200:
@@ -71,6 +74,8 @@ def _fetch(url: str, http: httpx.Client, max_bytes: int) -> tuple[bytes | None, 
                 data += chunk
                 if len(data) > max_bytes:
                     return None, f"larger than {max_bytes // (1 << 20)} MB"
+                if time.monotonic() > deadline:
+                    return None, f"took longer than {int(max_seconds)} s"
     except httpx.HTTPError as e:
         return None, f"network error: {type(e).__name__}"
     if not bytes(data[:5]).startswith(b"%PDF"):
@@ -79,7 +84,8 @@ def _fetch(url: str, http: httpx.Client, max_bytes: int) -> tuple[bytes | None, 
 
 
 def fetch(rules_dir: Path = config.RULES_DIR, *, only: str = "", dry_run: bool = False, accept_changed: bool = False,
-          http: httpx.Client | None = None, staging_dir: Path | None = None, max_bytes: int = MAX_BYTES) -> list[dict]:
+          http: httpx.Client | None = None, staging_dir: Path | None = None, max_bytes: int = MAX_BYTES,
+          max_seconds: float = MAX_SECONDS, progress=None) -> list[dict]:
     """One result per INDEX row: status is present, would download, installed, changed (held back), or failed."""
     rules_dir = Path(rules_dir)
     staging_dir = Path(staging_dir) if staging_dir else config.ROOT / "rules_staging" / "downloads"
@@ -104,7 +110,9 @@ def fetch(rules_dir: Path = config.RULES_DIR, *, only: str = "", dry_run: bool =
             if dry_run:
                 rec["status"] = "would download"
                 continue
-            data, why = _fetch(r["source_url"], http, max_bytes)
+            if progress:
+                progress(f"downloading {r['file']}")
+            data, why = _fetch(r["source_url"], http, max_bytes, max_seconds)
             if data is None:
                 rec.update(status="failed", note=why)
                 continue
@@ -124,31 +132,46 @@ def fetch(rules_dir: Path = config.RULES_DIR, *, only: str = "", dry_run: bool =
     return out
 
 
+def _confirmed(row: dict) -> bool:
+    return bool(row["confirmed_by"]) and not row["confirmed_by"].upper().startswith("PENDING")
+
+
 def has_confirmed_pdf(rules_dir: Path = config.RULES_DIR) -> bool:
     """True when at least one PDF that INDEX.md lists as confirmed is already in rules/."""
     rules_dir = Path(rules_dir)
-    for r in intake.index_rows(rules_dir):
-        confirmed = bool(r["confirmed_by"]) and not r["confirmed_by"].upper().startswith("PENDING")
-        if confirmed and r["file"].lower().endswith(".pdf") and (rules_dir / r["file"]).exists():
-            return True
-    return False
+    return any(_confirmed(r) and r["file"].lower().endswith(".pdf") and (rules_dir / r["file"]).exists() for r in intake.index_rows(rules_dir))
+
+
+def missing_confirmed(rules_dir: Path = config.RULES_DIR) -> list[str]:
+    """Confirmed PDFs that INDEX.md lists with a download URL but that are not in rules/."""
+    rules_dir = Path(rules_dir)
+    return [r["file"] for r in intake.index_rows(rules_dir)
+            if _confirmed(r) and r["file"].lower().endswith(".pdf") and r["source_url"].lower().startswith("http") and not (rules_dir / r["file"]).exists()]
 
 
 def ensure_rules(rules_dir: Path = config.RULES_DIR, *, http: httpx.Client | None = None, staging_dir: Path | None = None,
-                 max_bytes: int = MAX_BYTES) -> dict:
-    """First start of a hosted copy that ships without the PDFs: when rules/ holds no confirmed PDF, run the same download as
-    `python -m src.fetch_rules` (https, issuer hosts only, never overwrites, checksum rule unchanged). It never raises: the app must
-    start even if every download fails. Returns {"ran", "installed", "problems": [{"file", "status", "note"}]}."""
+                 max_bytes: int = MAX_BYTES, max_seconds: float = MAX_SECONDS, progress=print) -> dict:
+    """Start of a hosted copy that ships without the PDFs: when a confirmed rulebook listed in INDEX.md is missing from rules/, run the same
+    download as `python -m src.fetch_rules` (https, issuer hosts only, never overwrites, checksum rule unchanged). Files that are already there are
+    left alone, so a restart retries only what is still missing. Progress lines go to `progress` (the server log by default). It never raises: the
+    app must start even if every download fails. Returns {"ran", "installed", "problems": [{"file", "status", "note"}]}."""
     out = {"ran": False, "installed": 0, "problems": []}
     try:
-        if has_confirmed_pdf(rules_dir):
+        missing = missing_confirmed(rules_dir)
+        if not missing:
             return out
         out["ran"] = True
-        for r in fetch(rules_dir, http=http, staging_dir=staging_dir, max_bytes=max_bytes):
+        if progress:
+            progress(f"rulebooks: {len(missing)} listed file(s) missing from rules/, fetching")
+        for r in fetch(rules_dir, http=http, staging_dir=staging_dir, max_bytes=max_bytes, max_seconds=max_seconds, progress=progress):
             if r["status"] == "installed":
                 out["installed"] += 1
             elif r["status"] in ("failed", "changed"):
                 out["problems"].append({"file": r["file"], "status": r["status"], "note": r["note"]})
+                if progress:
+                    progress(f"rulebooks: {r['file']} {r['status']} ({r['note']})")
+        if progress:
+            progress(f"rulebooks: {out['installed']} installed, {len(out['problems'])} problem(s)")
     except Exception as e:  # nothing here may stop the app from starting
         out["problems"].append({"file": "(all)", "status": "failed", "note": f"{type(e).__name__} while fetching"})
     return out

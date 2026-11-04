@@ -91,7 +91,7 @@ Other documents: `CLAUDE.md` (short working rules for Claude Code in this folder
 │   ├── batch.py, appcore.py                                    batch mode and app helpers
 │   ├── evaluate.py                                             evaluation after processing
 │   └── settings.py, export_clean.py, fetch_rules.py                           reviewer name; clean export for GitHub
-├── tests/                         pytest suite (204 tests; no test makes a network call)
+├── tests/                         pytest suite (207 tests; no test makes a network call)
 └── dashboard/dashboard.html       static dashboard, view only (open in a browser)
 ```
 
@@ -444,7 +444,7 @@ Real-mode trials exist for all 50 items (`results/real_runs.csv`); about 9 resul
 | `python -m src.export_clean OUT_DIR` | clean copy for GitHub (names scrubbed, secrets and big files left out) | no |
 | `python -m src.fetch_rules [--dry-run] [--only TEXT]` | download the rulebook PDFs listed in `rules/INDEX.md` (free, needs internet) | no |
 | `python -m src.fetch_rules --write-checksums` | record sha256 of the PDFs in `rules/` before an export (offline) | no |
-| `python -m pytest -q` | 204 tests, no network | no |
+| `python -m pytest -q` | 207 tests, no network | no |
 | `python -m src.docsearch intake [--dry-run] [--id N06]` | add found rulebooks to `rules/` and `INDEX.md` as PENDING (no network) | no |
 
 **Decisions the project owner made in chat (all in force).**
@@ -480,7 +480,7 @@ Real-mode trials exist for all 50 items (`results/real_runs.csv`); about 9 resul
 - **Incident and guard (2026-11-03):** the Run screen's "Run this item (reruns and replaces that item's row)" box, used with the real-models switch off, replaced the main result of INV-0001 (ALLOWED 0.60) with a mock placeholder (UNKNOWN 0.28). It was restored from the first commit of the clean repository (backup of the damaged files kept in the session scratchpad); no decision was logged on it. A mock run can no longer replace an existing result, in the app (button disabled with a warning) or on the command line (`python -m src.run`); it still adds results for items without one.
 - **Updating GitHub:** `python -m src.export_clean <existing repo folder> --update` builds the clean copy in a temporary folder, verifies it, and only then brings the repository folder up to date in place (new and changed files copied, files no longer exported deleted, `.git` untouched). Then `git status`, commit and push. No new folder is needed.
 - **Cost and time estimates can be exceeded:** the Check a new item estimate (about $0.14, 46 s) comes from the 50 recorded trials. An entry without a maker or part number cost $0.255 and 103 s on one run and $0.180 and 61 s on the next.
-- 204 tests pass.
+- 207 tests pass.
 
 **Open items for people.**
 - Confirm each rulebook edition and put a named reviewer in `rules/INDEX.md` (`Confirmed by`).
@@ -500,7 +500,7 @@ A hosted copy can run with mock models for everyone and the real models behind a
 2. **New app.** On share.streamlit.io choose the repository, branch `main`, main file `app.py`, and under Advanced settings Python 3.11. `requirements.txt` (versions pinned) and `packages.txt` (`poppler-utils`, which provides `pdftotext` for the rulebook index) are read automatically. `runtime.txt` is not used by Streamlit Cloud.
 3. **Secrets.** Paste the names from `.streamlit/secrets.toml.example` into the app's Secrets box and fill the values yourself. Lookup order: environment variable, then Streamlit secrets, then `.env`. No `.env` file is needed. Keys are never printed or logged.
 4. **Demo settings** (in the same Secrets box): `DEMO_MODE = "true"`, `DEMO_PASSCODE`, `DEMO_MAX_REAL_ITEMS_PER_SESSION` (default 10) and `DEMO_MAX_REAL_ITEMS_PER_DAY` (default 30).
-5. **First start.** If `rules/` has no confirmed PDF, the app downloads the ones listed in `rules/INDEX.md` (https, Dubai and UAE issuer hosts only, never overwrites, checksums as in `fetch_rules`) and builds the clause index. A cold start with all 11 PDFs took 106 s to index on a development PC (peak memory of the Python process about 131 MB, so the 145 MB Fire Code fits) plus the download time. The app starts even if a download fails and lists every file it could not get.
+5. **First start.** When a confirmed rulebook listed in `rules/INDEX.md` is missing from `rules/`, the app downloads the missing ones (https, Dubai and UAE issuer hosts only, never overwrites, checksums as in `fetch_rules`, at most 300 s per file) and builds the clause index. After a restart it retries only what is still missing. Progress and the reason for each failure go to the server log (Manage app) and to a warning at the top of the page. A cold start with all 11 PDFs took 106 s to index on a development PC (peak memory of the Python process about 131 MB, so the 145 MB Fire Code fits) plus the download time. The app starts even if a download fails and lists every file it could not get.
 
 What demo mode does: a banner says the data are synthetic and saved decisions are not kept; the "Use real models" switch stays disabled until the visitor enters the passcode (compared in constant time) and types `spend`; five wrong passcodes lock the session to mock mode; real-mode items are counted per session and per day and the remaining count is shown in the sidebar. The cap covers Run (Mode A), Mode B batches (the batch pauses when the items run out), and Check a new item. Real-mode trials (`python -m src.realtrial`) are not available on the hosted copy because there is no shell; the app only shows stored ones. The name field stays `Project owner` and `reviewer.local.json` is never written. No screen is hidden.
 

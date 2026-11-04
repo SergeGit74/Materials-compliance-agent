@@ -142,12 +142,39 @@ def test_a_batch_stops_and_pauses_when_the_demo_cap_runs_out(tmp_path):
 # ---------- rulebooks on first start ----------
 
 
-def test_nothing_is_fetched_when_a_confirmed_pdf_is_already_there(tmp_path):
+def test_nothing_is_fetched_when_every_confirmed_pdf_is_already_there(tmp_path):
     d = rules(tmp_path, [("a.pdf", "https://dmpmedia.dm.gov.ae/a.pdf"), ("b.pdf", "https://www.dewa.gov.ae/b.ashx")])
     (d / "a.pdf").write_bytes(b"%PDF-mine")
+    (d / "b.pdf").write_bytes(b"%PDF-mine")
     seen = []
-    info = fetch_rules.ensure_rules(d, http=client(lambda req: seen.append(req) or httpx.Response(200, content=PDF)))
-    assert info == {"ran": False, "installed": 0, "problems": []} and seen == [] and not (d / "b.pdf").exists()
+    info = fetch_rules.ensure_rules(d, http=client(lambda req: seen.append(req) or httpx.Response(200, content=PDF)), progress=None)
+    assert info == {"ran": False, "installed": 0, "problems": []} and seen == []
+
+
+def test_a_restart_retries_only_the_files_that_are_still_missing(tmp_path):
+    d = rules(tmp_path, [("a.pdf", "https://dmpmedia.dm.gov.ae/a.pdf"), ("b.pdf", "https://www.dewa.gov.ae/b.ashx")])
+    (d / "a.pdf").write_bytes(b"%PDF-mine")
+    seen, lines = [], []
+    info = fetch_rules.ensure_rules(d, http=client(lambda req: seen.append(req.url.host) or httpx.Response(200, content=PDF)), progress=lines.append)
+    assert info["ran"] and info["installed"] == 1 and seen == ["www.dewa.gov.ae"]  # a.pdf is not fetched again and is never overwritten
+    assert (d / "a.pdf").read_bytes() == b"%PDF-mine" and (d / "b.pdf").read_bytes() == PDF
+    assert any("downloading b.pdf" in x for x in lines) and not any("a.pdf" in x for x in lines)
+
+
+def test_the_reason_a_download_failed_is_reported_and_logged(tmp_path):
+    d = rules(tmp_path, [("a.pdf", "https://www.dewa.gov.ae/a.ashx")])
+    lines = []
+    info = fetch_rules.ensure_rules(d, http=client(lambda req: httpx.Response(403)), progress=lines.append)
+    assert info["problems"] == [{"file": "a.pdf", "status": "failed", "note": "HTTP 403"}]
+    assert any("a.pdf failed (HTTP 403)" in x for x in lines)
+
+
+def test_a_download_that_takes_too_long_is_given_up(tmp_path, monkeypatch):
+    d = rules(tmp_path, [("a.pdf", "https://www.dewa.gov.ae/a.ashx")])
+    clock = iter(range(0, 1000, 100))  # each reading of the clock is 100 s later
+    monkeypatch.setattr(fetch_rules.time, "monotonic", lambda: next(clock))
+    info = fetch_rules.ensure_rules(d, http=client(ok), max_seconds=50, progress=None)
+    assert info["problems"] and "took longer than 50 s" in info["problems"][0]["note"] and not (d / "a.pdf").exists()
 
 
 def test_first_start_downloads_the_listed_files_and_reports_the_ones_that_failed(tmp_path):
@@ -168,15 +195,16 @@ def test_a_pending_only_rulebook_does_not_count_and_a_failure_never_stops_the_ap
     d.mkdir()
     (d / "INDEX.md").write_text(HEAD + "| p.pdf | dm | T | 2020 | https://dmpmedia.dm.gov.ae/p.pdf | 2026 | PENDING (check) |" + NL, encoding="utf-8")
     (d / "p.pdf").write_bytes(b"%PDF-pending")
-    assert fetch_rules.has_confirmed_pdf(d) is False
+    assert fetch_rules.has_confirmed_pdf(d) is False and fetch_rules.missing_confirmed(d) == []
+    assert fetch_rules.ensure_rules(d, http=client(ok), progress=None)["ran"] is False  # only confirmed rows are fetched on start
 
     def boom(req):
         raise httpx.ConnectError("offline")
 
-    info = fetch_rules.ensure_rules(d, http=client(boom))
-    assert info["ran"] and info["installed"] == 0  # the pending row is present, so nothing is missing and nothing raises
-    info = fetch_rules.ensure_rules(tmp_path / "no-such-folder")
-    assert info["installed"] == 0  # a missing rules folder does not raise either
+    d2 = rules(tmp_path / "x", [("c.pdf", "https://www.dewa.gov.ae/c.ashx")]) if (tmp_path / "x").mkdir() is None else None
+    info = fetch_rules.ensure_rules(d2, http=client(boom), progress=None)
+    assert info["ran"] and info["installed"] == 0 and "network error" in info["problems"][0]["note"]
+    assert fetch_rules.ensure_rules(tmp_path / "no-such-folder", progress=None)["installed"] == 0  # a missing rules folder does not raise either
 
 
 # ---------- the app in demo mode (mock models only) ----------
